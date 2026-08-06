@@ -1,0 +1,81 @@
+import React from 'react';
+
+interface MRLogoProps extends React.SVGProps<SVGSVGElement> {
+  className?: string;
+  color?: string;
+}
+
+export const MRLogo: React.FC<MRLogoProps> = ({
+  className = "h-10 w-auto",
+  color = "#F59E0B",
+  ...props
+}) => {
+  return (
+    <svg
+      viewBox="0 0 960 520"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      {...props}
+    >
+      <g fill={color}>
+        {/* === LETTER M === */}
+        {/* Left Vertical Stem & Serifs */}
+        <path d="M 90 40 L 230 40 L 210 70 L 180 70 L 180 440 L 210 440 L 235 470 L 95 470 L 120 440 L 150 440 L 150 70 L 120 70 Z" />
+
+        {/* Thin Downward Diagonal of M */}
+        <path d="M 155 70 L 360 470 L 390 470 L 185 70 Z" />
+
+        {/* Thick Upward Diagonal of M connecting to Column Capital */}
+        <path d="M 360 470 L 485 130 L 440 130 L 330 470 Z" />
+
+        {/* === IONIC COLUMN (CENTER STEM / R STEM) === */}
+        {/* Top Architrave / Abacus Bar */}
+        <path d="M 405 40 L 665 40 C 672 40 678 45 678 52 L 678 74 C 678 81 672 86 665 86 L 405 86 C 398 86 392 81 392 74 L 392 52 C 392 45 398 40 405 40 Z" />
+
+        {/* Left Spiral Volute */}
+        <path
+          d="M 425 86 C 395 86 380 110 380 138 C 380 172 415 185 438 176 C 455 168 464 150 457 132 C 450 114 430 112 418 123 C 412 129 414 140 425 140 C 434 140 436 131 430 126"
+          stroke={color}
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <circle cx="426" cy="133" r="7" />
+
+        {/* Right Spiral Volute */}
+        <path
+          d="M 645 86 C 675 86 690 110 690 138 C 690 172 655 185 632 176 C 615 168 606 150 613 132 C 620 114 640 112 652 123 C 658 129 656 140 645 140 C 636 140 634 131 640 126"
+          stroke={color}
+          strokeWidth="11"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+        <circle cx="644" cy="133" r="7" />
+
+        {/* Capital Mold Band */}
+        <path d="M 442 138 L 628 138 C 636 138 642 144 642 152 L 642 168 C 642 176 636 182 628 182 L 442 182 C 434 182 428 176 428 168 L 428 152 C 428 144 434 138 442 138 Z" />
+
+        {/* Column Shaft with 4 Transparent Fluting Cutouts */}
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          d="M 465 182 H 605 V 430 H 465 V 182 Z M 482 194 H 497 V 418 H 482 V 194 Z M 513 194 H 528 V 418 H 513 V 194 Z M 544 194 H 559 V 418 H 544 V 194 Z M 575 194 H 590 V 418 H 575 V 194 Z"
+        />
+
+        {/* Column Base (Torus & Plinth) */}
+        <path d="M 450 430 L 620 430 L 620 450 L 450 450 Z" />
+        <path d="M 425 450 L 645 450 C 652 450 658 456 658 463 L 658 475 C 658 478 655 480 650 480 L 420 480 C 415 480 412 478 412 475 L 412 463 C 412 456 418 450 425 450 Z" />
+
+        {/* === LETTER R BOWL AND LEG === */}
+        {/* R Upper Bowl */}
+        <path d="M 640 40 C 785 40 880 82 880 162 C 880 240 785 275 605 275 L 605 230 C 735 230 825 208 825 162 C 825 116 735 90 640 90 Z" />
+
+        {/* R Leg / Tail Sweep */}
+        <path d="M 605 240 C 690 240 735 285 798 370 L 860 450 C 890 475 928 480 945 480 L 880 480 C 855 480 825 462 790 415 C 738 345 695 292 605 292 Z" />
+      </g>
+    </svg>
+  );
+};
