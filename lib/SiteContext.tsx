@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Project, BlogPost, Service, SiteContactInfo, AboutInfo, PROJECTS, BLOG_POSTS, SERVICES, DEFAULT_SITE_INFO, DEFAULT_ABOUT_INFO } from './siteData';
+import { db } from './firebase';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 interface SiteContextType {
   projects: Project[];
@@ -9,18 +11,18 @@ interface SiteContextType {
   services: Service[];
   siteInfo: SiteContactInfo;
   aboutInfo: AboutInfo;
-  addProject: (project: Omit<Project, 'id'>) => void;
-  updateProject: (id: string, updated: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
-  addBlogPost: (post: Omit<BlogPost, 'id' | 'slug'>) => void;
-  updateBlogPost: (id: string, updated: Partial<BlogPost>) => void;
-  deleteBlogPost: (id: string) => void;
-  addService: (service: Omit<Service, 'id'>) => void;
-  updateService: (id: string, updated: Partial<Service>) => void;
-  deleteService: (id: string) => void;
-  updateSiteInfo: (info: Partial<SiteContactInfo>) => void;
-  updateAboutInfo: (info: Partial<AboutInfo>) => void;
-  resetToDefaultData: () => void;
+  addProject: (project: Omit<Project, 'id'>) => Promise<void> | void;
+  updateProject: (id: string, updated: Partial<Project>) => Promise<void> | void;
+  deleteProject: (id: string) => Promise<void> | void;
+  addBlogPost: (post: Omit<BlogPost, 'id' | 'slug'>) => Promise<void> | void;
+  updateBlogPost: (id: string, updated: Partial<BlogPost>) => Promise<void> | void;
+  deleteBlogPost: (id: string) => Promise<void> | void;
+  addService: (service: Omit<Service, 'id'>) => Promise<void> | void;
+  updateService: (id: string, updated: Partial<Service>) => Promise<void> | void;
+  deleteService: (id: string) => Promise<void> | void;
+  updateSiteInfo: (info: Partial<SiteContactInfo>) => Promise<void> | void;
+  updateAboutInfo: (info: Partial<AboutInfo>) => Promise<void> | void;
+  resetToDefaultData: () => Promise<void> | void;
 }
 
 const SiteContext = createContext<SiteContextType | undefined>(undefined);
@@ -31,6 +33,8 @@ const SERVICES_STORAGE_KEY = 'mr_engenharia_services_v1';
 const SITE_INFO_STORAGE_KEY = 'mr_engenharia_site_info_v1';
 const ABOUT_INFO_STORAGE_KEY = 'mr_engenharia_about_info_v1';
 
+const cleanObj = (obj: any) => JSON.parse(JSON.stringify(obj));
+
 export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(BLOG_POSTS);
@@ -38,134 +42,180 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [siteInfo, setSiteInfo] = useState<SiteContactInfo>(DEFAULT_SITE_INFO);
   const [aboutInfo, setAboutInfo] = useState<AboutInfo>(DEFAULT_ABOUT_INFO);
 
-  // Sync with localStorage safely on the client after initial hydration
+  // Load from local storage immediately as initial fast cache
   useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-        if (savedProjects) {
-          setProjects(JSON.parse(savedProjects));
-        } else {
-          localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(PROJECTS));
-        }
-      } catch (e) {
-        console.error(e);
-      }
+    try {
+      const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      if (savedProjects) setProjects(JSON.parse(savedProjects));
 
-      try {
-        const savedPosts = localStorage.getItem(BLOG_STORAGE_KEY);
-        if (savedPosts) {
-          setBlogPosts(JSON.parse(savedPosts));
-        } else {
-          localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(BLOG_POSTS));
-        }
-      } catch (e) {
-        console.error(e);
-      }
+      const savedPosts = localStorage.getItem(BLOG_STORAGE_KEY);
+      if (savedPosts) setBlogPosts(JSON.parse(savedPosts));
 
-      try {
-        const savedServices = localStorage.getItem(SERVICES_STORAGE_KEY);
-        if (savedServices) {
-          setServices(JSON.parse(savedServices));
-        } else {
-          localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(SERVICES));
-        }
-      } catch (e) {
-        console.error(e);
-      }
+      const savedServices = localStorage.getItem(SERVICES_STORAGE_KEY);
+      if (savedServices) setServices(JSON.parse(savedServices));
 
-      try {
-        const savedInfo = localStorage.getItem(SITE_INFO_STORAGE_KEY);
-        if (savedInfo) {
-          setSiteInfo(JSON.parse(savedInfo));
-        } else {
-          localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(DEFAULT_SITE_INFO));
-        }
-      } catch (e) {
-        console.error(e);
-      }
+      const savedInfo = localStorage.getItem(SITE_INFO_STORAGE_KEY);
+      if (savedInfo) setSiteInfo(JSON.parse(savedInfo));
 
-      try {
-        const savedAbout = localStorage.getItem(ABOUT_INFO_STORAGE_KEY);
-        if (savedAbout) {
-          setAboutInfo(JSON.parse(savedAbout));
-        } else {
-          localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(DEFAULT_ABOUT_INFO));
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    });
+      const savedAbout = localStorage.getItem(ABOUT_INFO_STORAGE_KEY);
+      if (savedAbout) setAboutInfo(JSON.parse(savedAbout));
+    } catch (e) {
+      console.error('Error loading initial cache from localStorage:', e);
+    }
   }, []);
 
-  // Save changes helper
-  const saveProjects = (newProjects: Project[]) => {
-    setProjects(newProjects);
-    try {
-      localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(newProjects));
-    } catch (e) {
-      console.error('Failed to save projects to localStorage:', e);
-    }
-  };
+  // Listen to Firestore changes in real-time across all devices
+  useEffect(() => {
+    // 1. Site Info (contact details, logos, phone, wa, CREA)
+    const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as SiteContactInfo;
+        setSiteInfo(data);
+        try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+      } else {
+        try {
+          await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(DEFAULT_SITE_INFO));
+        } catch (err) {
+          console.error('Error seeding initial siteInfo to Firestore:', err);
+        }
+      }
+    }, (error) => console.error('Firestore siteInfo listener error:', error));
 
-  const saveBlogPosts = (newPosts: BlogPost[]) => {
-    setBlogPosts(newPosts);
-    try {
-      localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(newPosts));
-    } catch (e) {
-      console.error('Failed to save blog posts to localStorage:', e);
-    }
-  };
+    // 2. About Info (hero title, image, history, values)
+    const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), async (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as AboutInfo;
+        setAboutInfo(data);
+        try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+      } else {
+        try {
+          await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(DEFAULT_ABOUT_INFO));
+        } catch (err) {
+          console.error('Error seeding initial aboutInfo to Firestore:', err);
+        }
+      }
+    }, (error) => console.error('Firestore aboutInfo listener error:', error));
 
-  const saveServices = (newServices: Service[]) => {
-    setServices(newServices);
-    try {
-      localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(newServices));
-    } catch (e) {
-      console.error('Failed to save services to localStorage:', e);
-    }
-  };
+    // 3. Projects collection
+    const unsubProjects = onSnapshot(collection(db, 'projects'), async (snapshot) => {
+      if (!snapshot.empty) {
+        const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
+        setProjects(loadedProjects);
+        try { localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(loadedProjects)); } catch (e) {}
+      } else {
+        try {
+          const batch = writeBatch(db);
+          PROJECTS.forEach((p) => {
+            const pRef = doc(db, 'projects', p.id);
+            batch.set(pRef, cleanObj(p));
+          });
+          await batch.commit();
+        } catch (err) {
+          console.error('Error seeding initial projects to Firestore:', err);
+        }
+      }
+    }, (error) => console.error('Firestore projects listener error:', error));
 
-  const updateSiteInfo = (updated: Partial<SiteContactInfo>) => {
+    // 4. Blog Posts collection
+    const unsubBlog = onSnapshot(collection(db, 'blogPosts'), async (snapshot) => {
+      if (!snapshot.empty) {
+        const loadedPosts = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as BlogPost));
+        setBlogPosts(loadedPosts);
+        try { localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(loadedPosts)); } catch (e) {}
+      } else {
+        try {
+          const batch = writeBatch(db);
+          BLOG_POSTS.forEach((post) => {
+            const postRef = doc(db, 'blogPosts', post.id);
+            batch.set(postRef, cleanObj(post));
+          });
+          await batch.commit();
+        } catch (err) {
+          console.error('Error seeding initial blog posts to Firestore:', err);
+        }
+      }
+    }, (error) => console.error('Firestore blogPosts listener error:', error));
+
+    // 5. Services collection
+    const unsubServices = onSnapshot(collection(db, 'services'), async (snapshot) => {
+      if (!snapshot.empty) {
+        const loadedServices = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Service));
+        setServices(loadedServices);
+        try { localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(loadedServices)); } catch (e) {}
+      } else {
+        try {
+          const batch = writeBatch(db);
+          SERVICES.forEach((s) => {
+            const sRef = doc(db, 'services', s.id);
+            batch.set(sRef, cleanObj(s));
+          });
+          await batch.commit();
+        } catch (err) {
+          console.error('Error seeding initial services to Firestore:', err);
+        }
+      }
+    }, (error) => console.error('Firestore services listener error:', error));
+
+    return () => {
+      unsubSiteInfo();
+      unsubAboutInfo();
+      unsubProjects();
+      unsubBlog();
+      unsubServices();
+    };
+  }, []);
+
+  // Update operations - Writes to Firestore so all connected devices update live
+  const updateSiteInfo = async (updated: Partial<SiteContactInfo>) => {
     const newInfo = { ...siteInfo, ...updated };
     setSiteInfo(newInfo);
     try {
-      localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(newInfo));
+      await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
     } catch (e) {
-      console.error('Failed to save site info to localStorage:', e);
+      console.error('Failed to update site info in Firestore:', e);
     }
   };
 
-  const updateAboutInfo = (updated: Partial<AboutInfo>) => {
+  const updateAboutInfo = async (updated: Partial<AboutInfo>) => {
     const newAbout = { ...aboutInfo, ...updated };
     setAboutInfo(newAbout);
     try {
-      localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(newAbout));
+      await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(newAbout), { merge: true });
     } catch (e) {
-      console.error('Failed to save about info to localStorage:', e);
+      console.error('Failed to update about info in Firestore:', e);
     }
   };
 
-  const addProject = (projectData: Omit<Project, 'id'>) => {
-    const newProject: Project = {
-      ...projectData,
-      id: 'proj-' + Date.now(),
-    };
-    const updated = [newProject, ...projects];
-    saveProjects(updated);
+  const addProject = async (projectData: Omit<Project, 'id'>) => {
+    const newId = 'proj-' + Date.now();
+    const newProject: Project = { ...projectData, id: newId };
+    try {
+      await setDoc(doc(db, 'projects', newId), cleanObj(newProject));
+    } catch (e) {
+      console.error('Failed to add project to Firestore:', e);
+    }
   };
 
-  const updateProject = (id: string, updatedData: Partial<Project>) => {
-    const updated = projects.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
-    saveProjects(updated);
+  const updateProject = async (id: string, updatedData: Partial<Project>) => {
+    const existing = projects.find(p => p.id === id);
+    const updated = existing ? { ...existing, ...updatedData } : updatedData;
+    try {
+      await setDoc(doc(db, 'projects', id), cleanObj(updated), { merge: true });
+    } catch (e) {
+      console.error('Failed to update project in Firestore:', e);
+    }
   };
 
-  const deleteProject = (id: string) => {
-    const updated = projects.filter((p) => p.id !== id);
-    saveProjects(updated);
+  const deleteProject = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'projects', id));
+    } catch (e) {
+      console.error('Failed to delete project from Firestore:', e);
+    }
   };
 
-  const addBlogPost = (postData: Omit<BlogPost, 'id' | 'slug'>) => {
+  const addBlogPost = async (postData: Omit<BlogPost, 'id' | 'slug'>) => {
+    const newId = 'post-' + Date.now();
     const slug = postData.title
       .toLowerCase()
       .normalize('NFD')
@@ -173,50 +223,79 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
 
-    const newPost: BlogPost = {
-      ...postData,
-      id: 'post-' + Date.now(),
-      slug,
-    };
-    const updated = [newPost, ...blogPosts];
-    saveBlogPosts(updated);
+    const newPost: BlogPost = { ...postData, id: newId, slug };
+    try {
+      await setDoc(doc(db, 'blogPosts', newId), cleanObj(newPost));
+    } catch (e) {
+      console.error('Failed to add blog post to Firestore:', e);
+    }
   };
 
-  const updateBlogPost = (id: string, updatedData: Partial<BlogPost>) => {
-    const updated = blogPosts.map((p) => (p.id === id ? { ...p, ...updatedData } : p));
-    saveBlogPosts(updated);
+  const updateBlogPost = async (id: string, updatedData: Partial<BlogPost>) => {
+    const existing = blogPosts.find(p => p.id === id);
+    const updated = existing ? { ...existing, ...updatedData } : updatedData;
+    try {
+      await setDoc(doc(db, 'blogPosts', id), cleanObj(updated), { merge: true });
+    } catch (e) {
+      console.error('Failed to update blog post in Firestore:', e);
+    }
   };
 
-  const deleteBlogPost = (id: string) => {
-    const updated = blogPosts.filter((p) => p.id !== id);
-    saveBlogPosts(updated);
+  const deleteBlogPost = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'blogPosts', id));
+    } catch (e) {
+      console.error('Failed to delete blog post from Firestore:', e);
+    }
   };
 
-  const addService = (serviceData: Omit<Service, 'id'>) => {
-    const newService: Service = {
-      ...serviceData,
-      id: 'serv-' + Date.now(),
-    };
-    const updated = [...services, newService];
-    saveServices(updated);
+  const addService = async (serviceData: Omit<Service, 'id'>) => {
+    const newId = 'serv-' + Date.now();
+    const newService: Service = { ...serviceData, id: newId };
+    try {
+      await setDoc(doc(db, 'services', newId), cleanObj(newService));
+    } catch (e) {
+      console.error('Failed to add service to Firestore:', e);
+    }
   };
 
-  const updateService = (id: string, updatedData: Partial<Service>) => {
-    const updated = services.map((s) => (s.id === id ? { ...s, ...updatedData } : s));
-    saveServices(updated);
+  const updateService = async (id: string, updatedData: Partial<Service>) => {
+    const existing = services.find(s => s.id === id);
+    const updated = existing ? { ...existing, ...updatedData } : updatedData;
+    try {
+      await setDoc(doc(db, 'services', id), cleanObj(updated), { merge: true });
+    } catch (e) {
+      console.error('Failed to update service in Firestore:', e);
+    }
   };
 
-  const deleteService = (id: string) => {
-    const updated = services.filter((s) => s.id !== id);
-    saveServices(updated);
+  const deleteService = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'services', id));
+    } catch (e) {
+      console.error('Failed to delete service from Firestore:', e);
+    }
   };
 
-  const resetToDefaultData = () => {
-    saveProjects(PROJECTS);
-    saveBlogPosts(BLOG_POSTS);
-    saveServices(SERVICES);
-    updateSiteInfo(DEFAULT_SITE_INFO);
-    updateAboutInfo(DEFAULT_ABOUT_INFO);
+  const resetToDefaultData = async () => {
+    try {
+      await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(DEFAULT_SITE_INFO));
+      await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(DEFAULT_ABOUT_INFO));
+
+      const pBatch = writeBatch(db);
+      PROJECTS.forEach(p => pBatch.set(doc(db, 'projects', p.id), cleanObj(p)));
+      await pBatch.commit();
+
+      const bBatch = writeBatch(db);
+      BLOG_POSTS.forEach(b => bBatch.set(doc(db, 'blogPosts', b.id), cleanObj(b)));
+      await bBatch.commit();
+
+      const sBatch = writeBatch(db);
+      SERVICES.forEach(s => sBatch.set(doc(db, 'services', s.id), cleanObj(s)));
+      await sBatch.commit();
+    } catch (e) {
+      console.error('Failed to reset default data in Firestore:', e);
+    }
   };
 
   return (
@@ -253,3 +332,4 @@ export const useSiteData = () => {
   }
   return context;
 };
+

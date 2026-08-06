@@ -2,47 +2,34 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
     // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Public projects collection
+    // Projects collection
     match /projects/{projectId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
-    // Public blog posts collection
+    // Blog posts collection
     match /blogPosts/{postId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
-    // Public services collection
+    // Services collection
     match /services/{serviceId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Site configuration
     match /siteConfig/{configId} {
-      allow read: if true;
-      allow write: if isSignedIn();
+      allow read, write: if true;
     }
 
     // Quote and contact requests
     match /quoteRequests/{requestId} {
-      allow create: if true;
-      allow read, update, delete: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }
