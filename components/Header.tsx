@@ -53,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-3 text-left group focus:outline-none"
             id="brand-logo-btn"
           >
-            <div className="h-12 px-2 bg-gradient-to-br from-[#0A1128] via-[#111C3A] to-[#0A1128] border-2 border-amber-500/60 rounded-xl flex items-center justify-center shadow-lg group-hover:border-amber-400 transition-all duration-300 max-w-[120px] overflow-hidden">
+            <div className="h-12 px-3 bg-gradient-to-br from-[#0A1128] via-[#111C3A] to-[#0A1128] border-2 border-amber-500/60 rounded-xl flex items-center justify-center shadow-lg group-hover:border-amber-400 transition-all duration-300 max-w-[180px] overflow-hidden">
               {siteInfo.headerLogoUrl ? (
                 <img
                   src={siteInfo.headerLogoUrl}

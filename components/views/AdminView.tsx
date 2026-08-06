@@ -13,8 +13,14 @@ import { useSiteData } from '@/lib/SiteContext';
 import { Project, BlogPost, Service, BLOG_CATEGORIES, SiteContactInfo, AboutInfo, AboutValue } from '@/lib/siteData';
 import { MRLogo } from '../MRLogo';
 
-// Helper to compress uploaded images to lightweight JPEG Base64
-const compressImageFile = (file: File, maxWidth = 1200, maxHeight = 1200, quality = 0.82): Promise<string> => {
+// Helper to compress uploaded images to lightweight Base64 (preserves PNG/WebP transparency)
+const compressImageFile = (
+  file: File, 
+  maxWidth = 1200, 
+  maxHeight = 1200, 
+  quality = 0.85,
+  outputType?: string
+): Promise<string> => {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
       reject(new Error('O arquivo selecionado não é uma imagem válida.'));
@@ -49,7 +55,11 @@ const compressImageFile = (file: File, maxWidth = 1200, maxHeight = 1200, qualit
         }
 
         ctx.drawImage(img, 0, 0, width, height);
-        const compressed = canvas.toDataURL('image/jpeg', quality);
+
+        // Keep PNG or WebP format for transparent images/logos
+        const isTransparent = file.type === 'image/png' || file.type === 'image/webp';
+        const format = outputType || (isTransparent ? file.type : 'image/jpeg');
+        const compressed = canvas.toDataURL(format, quality);
         resolve(compressed);
       };
       img.src = evt.target?.result as string;
@@ -171,9 +181,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutHeroImage(true);
     try {
-      const compressed = await compressImageFile(file);
-      setAboutForm((prev) => ({ ...prev, heroImage: compressed }));
-      triggerToast('Imagem do cabeçalho da página Sobre atualizada!');
+      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
+      const updated = { ...aboutForm, heroImage: compressed };
+      setAboutForm(updated);
+      await updateAboutInfo(updated);
+      triggerToast('Imagem do cabeçalho Sobre salva e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -186,9 +198,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutOfficeImage(true);
     try {
-      const compressed = await compressImageFile(file);
-      setAboutForm((prev) => ({ ...prev, officeImage: compressed }));
-      triggerToast('Imagem do escritório atualizada!');
+      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
+      const updated = { ...aboutForm, officeImage: compressed };
+      setAboutForm(updated);
+      await updateAboutInfo(updated);
+      triggerToast('Imagem do escritório salva e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -212,8 +226,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       } else {
         resultUrl = await compressImageFile(file, 800, 800, 0.9);
       }
-      setContactForm((prev) => ({ ...prev, headerLogoUrl: resultUrl }));
-      triggerToast('Logo do cabeçalho alterada com sucesso!');
+      const updated = { ...contactForm, headerLogoUrl: resultUrl };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Logo do cabeçalho salva e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a logo do cabeçalho.');
@@ -237,14 +253,37 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       } else {
         resultUrl = await compressImageFile(file, 800, 800, 0.9);
       }
-      setContactForm((prev) => ({ ...prev, footerLogoUrl: resultUrl }));
-      triggerToast('Logo do rodapé alterada com sucesso!');
+      const updated = { ...contactForm, footerLogoUrl: resultUrl };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Logo do rodapé salva e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a logo do rodapé.');
     } finally {
       setIsUploadingFooterLogo(false);
     }
+  };
+
+  const handleRemoveHeaderLogo = async () => {
+    const updated = { ...contactForm, headerLogoUrl: '' };
+    setContactForm(updated);
+    await updateSiteInfo(updated);
+    triggerToast('Logo do cabeçalho restaurada em todos os dispositivos!');
+  };
+
+  const handleUseHeaderLogoForFooter = async () => {
+    const updated = { ...contactForm, footerLogoUrl: contactForm.headerLogoUrl };
+    setContactForm(updated);
+    await updateSiteInfo(updated);
+    triggerToast('Logo do rodapé sincronizada com a do cabeçalho!');
+  };
+
+  const handleRemoveFooterLogo = async () => {
+    const updated = { ...contactForm, footerLogoUrl: '' };
+    setContactForm(updated);
+    await updateSiteInfo(updated);
+    triggerToast('Logo do rodapé restaurada em todos os dispositivos!');
   };
 
   // Service Modal State
@@ -1990,7 +2029,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             {contactForm.headerLogoUrl && (
                               <button
                                 type="button"
-                                onClick={() => setContactForm({ ...contactForm, headerLogoUrl: '' })}
+                                onClick={handleRemoveHeaderLogo}
                                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-red-400" />
@@ -2071,7 +2110,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             {contactForm.headerLogoUrl && contactForm.footerLogoUrl !== contactForm.headerLogoUrl && (
                               <button
                                 type="button"
-                                onClick={() => setContactForm({ ...contactForm, footerLogoUrl: contactForm.headerLogoUrl })}
+                                onClick={handleUseHeaderLogoForFooter}
                                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors border border-slate-700"
                               >
                                 <span>Usar a do Cabeçalho</span>
@@ -2081,7 +2120,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             {contactForm.footerLogoUrl && (
                               <button
                                 type="button"
-                                onClick={() => setContactForm({ ...contactForm, footerLogoUrl: '' })}
+                                onClick={handleRemoveFooterLogo}
                                 className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
                               >
                                 <Trash2 className="w-3.5 h-3.5 text-red-400" />

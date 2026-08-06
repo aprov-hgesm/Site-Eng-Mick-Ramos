@@ -58,7 +58,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
           {/* Brand Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 px-2 bg-amber-500/10 border border-amber-500/50 rounded-lg flex items-center justify-center max-w-[100px] overflow-hidden">
+              <div className="h-10 px-3 bg-amber-500/10 border border-amber-500/50 rounded-lg flex items-center justify-center max-w-[160px] overflow-hidden">
                 {siteInfo.footerLogoUrl || siteInfo.headerLogoUrl ? (
                   <img
                     src={siteInfo.footerLogoUrl || siteInfo.headerLogoUrl}
