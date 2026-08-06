@@ -18,6 +18,27 @@ export const ContactView: React.FC = () => {
   const [agreed, setAgreed] = useState(true);
   const [submitted, setSubmitted] = useState(false);
 
+  const targetEmail = 'engcivilmickramos@gmail.com';
+
+  const handleSendEmail = () => {
+    const mailSubject = `[CONTATO - SITE] ${subject} - ${name}`;
+    const mailBody = 
+      `MENSAGEM DE CONTATO - MR ENGENHARIA CIVIL\n\n` +
+      `-------------------------------------------\n` +
+      `DADOS DO CONTATO:\n` +
+      `Nome Completo: ${name}\n` +
+      `E-mail do Cliente: ${email}\n` +
+      `WhatsApp / Telefone: ${whatsapp}\n` +
+      `Assunto: ${subject}\n\n` +
+      `-------------------------------------------\n` +
+      `MENSAGEM:\n${message}\n\n` +
+      `-------------------------------------------\n` +
+      `Mensagem padronizada enviada pelo site oficial da MR Engenharia.`;
+
+    const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+    window.location.href = mailtoUrl;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) {
@@ -25,6 +46,7 @@ export const ContactView: React.FC = () => {
       return;
     }
     setSubmitted(true);
+    handleSendEmail();
   };
 
   const handleSendWhatsApp = () => {
@@ -112,16 +134,36 @@ export const ContactView: React.FC = () => {
                 <h3 className="text-xl font-serif font-bold text-slate-900">
                   Mensagem Enviada com Sucesso!
                 </h3>
-                <p className="text-xs text-slate-600">
-                  Obrigado, {name}. Recebemos sua mensagem e responderemos em breve.
+                <p className="text-xs text-slate-600 max-w-md mx-auto">
+                  Obrigado, <strong className="text-slate-900">{name}</strong>. Sua mensagem foi formatada e direcionada para <strong>{targetEmail}</strong>.
                 </p>
-                <button
-                  onClick={handleSendWhatsApp}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center gap-2 shadow-md"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Enviar Cópia via WhatsApp</span>
-                </button>
+
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-left space-y-2 max-w-lg mx-auto text-xs text-slate-700">
+                  <div className="font-bold text-slate-900 text-sm border-b border-amber-200 pb-1 mb-2 flex justify-between items-center">
+                    <span>Resumo da Mensagem:</span>
+                    <span className="text-[11px] text-amber-800 font-normal">Destinatário: {targetEmail}</span>
+                  </div>
+                  <div>• <strong>Assunto:</strong> {subject}</div>
+                  <div>• <strong>E-mail:</strong> {email}</div>
+                  <div>• <strong>WhatsApp:</strong> {whatsapp}</div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                  <button
+                    onClick={handleSendEmail}
+                    className="px-5 py-3 bg-[#0A1128] hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 shadow-md transition-colors"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span>Enviar por E-mail</span>
+                  </button>
+                  <button
+                    onClick={handleSendWhatsApp}
+                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 shadow-md transition-colors"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Enviar via WhatsApp</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">

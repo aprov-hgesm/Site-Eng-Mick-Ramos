@@ -142,7 +142,7 @@ export const DEFAULT_SITE_INFO: SiteContactInfo = {
   tagline: 'Soluções completas em engenharia civil com responsabilidade técnica, qualidade e compromisso com o resultado.',
   phone: '(86) 99927-0261',
   whatsappUrl: 'https://wa.me/5586999270261?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20de%20engenharia.',
-  email: 'engcivil@mickramos@gmail.com',
+  email: 'engcivilmickramos@gmail.com',
   address: 'Av. São Sebastião, 1234 - Sala 05 - Centro, Parnaíba - PI, CEP 64200-000',
   cityRegion: 'Parnaíba - PI e região (Luís Correia, Buriti dos Lopes, Ilha Grande, Cajueiro da Praia)',
   hours: 'Segunda a Sexta: 8h às 18h | Sábado: 8h às 12h',

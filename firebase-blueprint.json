@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Engineering project item displayed in the portfolio.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "location": { "type": "string" },
+        "year": { "type": "string" },
+        "area": { "type": "string" },
+        "status": { "type": "string" },
+        "description": { "type": "string" },
+        "highlights": { "type": "array" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "description"]
+    },
+    "BlogPost": {
+      "title": "BlogPost",
+      "description": "Article or news post on civil engineering.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "category": { "type": "string" },
+        "date": { "type": "string" },
+        "author": { "type": "string" },
+        "readTime": { "type": "string" },
+        "excerpt": { "type": "string" },
+        "content": { "type": "string" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "slug", "content"]
+    },
+    "Service": {
+      "title": "Service",
+      "description": "Engineering service offered by MR Engenharia.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "shortDescription": { "type": "string" },
+        "fullDescription": { "type": "string" },
+        "icon": { "type": "string" },
+        "features": { "type": "array" },
+        "deliverables": { "type": "array" }
+      },
+      "required": ["id", "title", "shortDescription"]
+    },
+    "SiteInfo": {
+      "title": "SiteInfo",
+      "description": "Global contact and brand configuration.",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "crea": { "type": "string" },
+        "engineerName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "phone": { "type": "string" },
+        "whatsappUrl": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "cityRegion": { "type": "string" },
+        "hours": { "type": "string" },
+        "headerLogoUrl": { "type": "string" },
+        "footerLogoUrl": { "type": "string" }
+      }
+    },
+    "QuoteRequest": {
+      "title": "QuoteRequest",
+      "description": "Customer quote request received via the website.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "service": { "type": "string" },
+        "propertyType": { "type": "string" },
+        "areaSize": { "type": "string" },
+        "location": { "type": "string" },
+        "details": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "service"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collection of engineering portfolio projects."
+    },
+    "/blogPosts/{postId}": {
+      "schema": "BlogPost",
+      "description": "Collection of technical blog articles."
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Collection of engineering services."
+    },
+    "/siteConfig/contact": {
+      "schema": "SiteInfo",
+      "description": "Single document holding site-wide contact info."
+    },
+    "/quoteRequests/{requestId}": {
+      "schema": "QuoteRequest",
+      "description": "Collection of submitted quote requests."
+    }
+  }
+}

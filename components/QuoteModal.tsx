@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, Send, Building, ShieldCheck, FileCheck2, Calculator } from 'lucide-react';
+import { X, CheckCircle2, Send, Building, ShieldCheck, FileCheck2, Calculator, Mail } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
 
 interface QuoteModalProps {
@@ -28,9 +28,36 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
   if (!isOpen) return null;
 
+  const targetEmail = 'engcivilmickramos@gmail.com';
+
+  const handleSendEmail = () => {
+    const mailSubject = `[SOLICITAÇÃO DE ORÇAMENTO] ${service} - ${name}`;
+    const mailBody = 
+      `SOLICITAÇÃO DE ORÇAMENTO - MR ENGENHARIA CIVIL\n\n` +
+      `-------------------------------------------\n` +
+      `DADOS DO CLIENTE:\n` +
+      `Nome Completo: ${name}\n` +
+      `WhatsApp / Telefone: ${phone}\n` +
+      `E-mail: ${email || 'Não informado'}\n\n` +
+      `-------------------------------------------\n` +
+      `DETALHES DO PROJETO / SERVIÇO:\n` +
+      `Serviço Requerido: ${service}\n` +
+      `Tipo de Imóvel: ${propertyType}\n` +
+      `Área Aproximada: ${areaSize} m²\n` +
+      `Cidade / Localização: ${location}\n\n` +
+      `-------------------------------------------\n` +
+      `OBSERVAÇÕES / DETALHES:\n${details || 'Sem observações adicionais.'}\n\n` +
+      `-------------------------------------------\n` +
+      `Solicitação padronizada gerada pelo site oficial da MR Engenharia.`;
+
+    const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+    window.location.href = mailtoUrl;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    handleSendEmail();
   };
 
   const handleSendWhatsApp = () => {
@@ -95,9 +122,11 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
               </p>
               
               <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-left space-y-2 max-w-lg mx-auto text-xs text-slate-700">
-                <div className="font-bold text-slate-900 text-sm border-b border-amber-200 pb-1 mb-2">
-                  Resumo da Solicitação:
+                <div className="font-bold text-slate-900 text-sm border-b border-amber-200 pb-1 mb-2 flex flex-wrap items-center justify-between gap-1">
+                  <span>Resumo da Solicitação:</span>
+                  <span className="text-[11px] text-amber-800 font-normal">Destino: {targetEmail}</span>
                 </div>
+                <div>• <strong>Cliente:</strong> {name} ({phone})</div>
                 <div>• <strong>Serviço:</strong> {service}</div>
                 <div>• <strong>Imóvel:</strong> {propertyType} (~{areaSize} m²)</div>
                 <div>• <strong>Cidade:</strong> {location}</div>
@@ -105,20 +134,27 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
               <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
                 <button
+                  onClick={handleSendEmail}
+                  className="px-5 py-3 bg-[#0A1128] hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg transition-colors"
+                >
+                  <Mail className="w-4 h-4" />
+                  <span>Enviar por E-mail</span>
+                </button>
+                <button
                   onClick={handleSendWhatsApp}
-                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20"
+                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-colors"
                 >
                   <Send className="w-4 h-4" />
-                  <span>Enviar Agora no WhatsApp</span>
+                  <span>Enviar no WhatsApp</span>
                 </button>
                 <button
                   onClick={() => {
                     setSubmitted(false);
                     onClose();
                   }}
-                  className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl"
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
                 >
-                  Fechar Janela
+                  Fechar
                 </button>
               </div>
             </div>

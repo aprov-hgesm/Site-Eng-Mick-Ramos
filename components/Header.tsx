@@ -31,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'projetos', label: 'PROJETOS' },
     { id: 'blog', label: 'BLOG' },
     { id: 'contato', label: 'CONTATO' },
-    { id: 'admin', label: 'PAINEL ADMIN' },
   ];
 
   const handleNavClick = (tabId: TabType) => {

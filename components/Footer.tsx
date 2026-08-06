@@ -26,7 +26,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
       <div className="bg-[#0A1128] border-b border-slate-800/80 py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 hidden sm:block">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 hidden sm:block">
               <MessageCircle className="w-7 h-7" />
             </div>
             <div>
@@ -34,18 +34,20 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
                 Ficou com alguma dúvida?
               </h3>
               <p className="text-slate-400 text-sm mt-1">
-                Fale com um engenheiro e receba orientação técnica personalizada.
+                Fale diretamente com o engenheiro Mick Ramos pelo WhatsApp.
               </p>
             </div>
           </div>
-          <button
-            onClick={onOpenQuote}
-            id="footer-quote-cta-btn"
-            className="px-6 py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-lg flex items-center gap-2 shadow-lg shadow-amber-500/10 transition-all transform hover:-translate-y-0.5"
+          <a
+            href={siteInfo.whatsappUrl || "https://wa.me/5586999270261?text=Ol%C3%A1%2C%20tenho%20uma%20d%C3%BAvida%20e%20gostaria%20de%20falar%20com%20o%20engenheiro."}
+            target="_blank"
+            rel="noopener noreferrer"
+            id="footer-whatsapp-cta-btn"
+            className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl flex items-center gap-2.5 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5"
           >
-            <Phone className="w-4 h-4" />
-            <span>FALE CONOSCO AGORA</span>
-          </button>
+            <MessageCircle className="w-5 h-5 fill-current" />
+            <span>WHATSAPP (+55 86 99927-0261)</span>
+          </a>
         </div>
       </div>
 
@@ -197,7 +199,15 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
           <div className="flex items-center gap-4 text-amber-400/80 font-mono text-[11px]">
             <span>{siteInfo.crea}</span>
           </div>
-          <p>Desenvolvido com propósito e excelência técnica.</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleNavClick('admin')}
+              className="text-slate-500 hover:text-amber-400 text-[11px] font-medium transition-colors flex items-center gap-1"
+              id="footer-admin-link"
+            >
+              <span>🔒 Painel de Administração</span>
+            </button>
+          </div>
         </div>
       </div>
 

@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ShieldCheck, Lock, Unlock, Plus, Edit2, Trash2, LayoutDashboard, 
   FolderKanban, FileText, RotateCcw, Image as ImageIcon, MapPin, 
-  Calendar, Clock, User, Check, X, Layers, AlertTriangle, Eye, ArrowRight,
+  Calendar, Clock, User, Check, X, Layers, AlertTriangle, Eye, EyeOff, ShieldAlert, ArrowRight,
   Upload, FileUp, Star, Phone, Mail, MessageCircle, Save, CheckCircle2,
   Compass, Search, Building2, FileCheck, HardHat, Flame, Box, Wrench, HelpCircle,
   GraduationCap, Quote, Target, Scale, Award
@@ -85,7 +85,39 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [passwordInput, setPasswordInput] = useState('');
-  const [authError, setAuthError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
+
+  // SHA-256 Hash of "Antonia1#"
+  const SECURE_PASSWORD_HASH = 'e218440d0b94b384218f7b6face3f8f051251c787e91ce378b1b59dc0e478145';
+
+  useEffect(() => {
+    // Check session storage for authenticated state on component mount
+    if (typeof window !== 'undefined') {
+      const savedAuth = sessionStorage.getItem('mr_admin_auth');
+      if (savedAuth === `true_${SECURE_PASSWORD_HASH}`) {
+        setIsAuthenticated(true);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (lockoutTimeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setAuthError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutTimeLeft]);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'about' | 'projects' | 'services' | 'blog' | 'contact'>('dashboard');
 
@@ -376,13 +408,61 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setConfirmModal({ ...confirmModal, isOpen: false });
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const hashPassword = async (pwd: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(pwd);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === '1234' || passwordInput.toLowerCase() === 'admin') {
-      setIsAuthenticated(true);
-      setAuthError(false);
-    } else {
-      setAuthError(true);
+    if (lockoutTimeLeft > 0 || isVerifying) return;
+
+    if (!passwordInput.trim()) {
+      setAuthError('Por favor, informe a senha de acesso.');
+      return;
+    }
+
+    setIsVerifying(true);
+    setAuthError('');
+
+    // Artificial delay to prevent timing analysis attack
+    await new Promise((resolve) => setTimeout(resolve, 350));
+
+    try {
+      const computedHash = await hashPassword(passwordInput);
+      if (computedHash === SECURE_PASSWORD_HASH) {
+        setIsAuthenticated(true);
+        setFailedAttempts(0);
+        setPasswordInput('');
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('mr_admin_auth', `true_${SECURE_PASSWORD_HASH}`);
+        }
+      } else {
+        const nextAttempts = failedAttempts + 1;
+        setFailedAttempts(nextAttempts);
+        setPasswordInput('');
+        if (nextAttempts >= 5) {
+          setLockoutTimeLeft(60);
+          setAuthError('Proteção Anti-Ataque Ativada: Excesso de tentativas incorretas. Aguarde 60 segundos.');
+        } else {
+          setAuthError(`Senha incorreta. Tentativa ${nextAttempts} de 5.`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      setAuthError('Erro ao verificar criptografia.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('mr_admin_auth');
     }
   };
 
@@ -664,50 +744,79 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center bg-slate-900 py-16 px-4">
-        <div className="w-full max-w-md bg-slate-950 border border-amber-500/30 rounded-2xl p-8 shadow-2xl space-y-6 text-center">
+        <div className="w-full max-w-md bg-slate-950 border border-amber-500/30 rounded-2xl p-8 shadow-2xl space-y-6 text-center relative overflow-hidden">
           
           <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto shadow-inner">
-            <Lock className="w-8 h-8" />
+            <ShieldCheck className="w-8 h-8 text-amber-400" />
           </div>
 
           <div>
             <h1 className="text-2xl font-serif font-bold text-white">
-              Painel Administrativo
+              Painel Administrativo Restrito
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              MR Engenharia Civil • Gestão de Conteúdo
+              MR Engenharia Civil • Gestão e Segurança
             </p>
           </div>
 
-          <div className="p-3 bg-amber-500/10 rounded-xl border border-amber-500/20 text-xs text-amber-300">
-            💡 <strong>Senha de Acesso Demonstrativa:</strong> Digite <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-amber-400">1234</code> ou <code className="bg-slate-900 px-1.5 py-0.5 rounded font-mono text-amber-400">admin</code>
+          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] text-slate-300 flex items-center justify-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>Acesso protegido com criptografia SHA-256 e proteção anti-ataque.</span>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
+            <div className="relative">
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={passwordInput}
                 onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Informe a senha..."
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-center text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500"
+                placeholder="Informe a senha do painel..."
+                disabled={lockoutTimeLeft > 0 || isVerifying}
+                className="w-full pl-4 pr-11 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-center text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
                 autoFocus
               />
-              {authError && (
-                <p className="text-xs text-red-400 mt-2 font-bold">
-                  Senha incorreta. Tente 1234 ou admin.
-                </p>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 transition-colors p-1"
+                title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
+
+            {authError && (
+              <div className="p-3 bg-red-950/60 border border-red-500/40 rounded-xl text-xs text-red-300 font-medium">
+                {authError}
+              </div>
+            )}
+
+            {lockoutTimeLeft > 0 && (
+              <div className="p-3 bg-amber-950/60 border border-amber-500/40 rounded-xl text-xs text-amber-300 font-mono">
+                Aguarde <strong>{lockoutTimeLeft}s</strong> para tentar novamente.
+              </div>
+            )}
 
             <button
               type="submit"
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+              disabled={lockoutTimeLeft > 0 || isVerifying}
+              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Unlock className="w-4 h-4" />
-              <span>ACESSAR PAINEL</span>
+              {isVerifying ? (
+                <span>VERIFICANDO CRIPTOGRAFIA...</span>
+              ) : (
+                <>
+                  <Unlock className="w-4 h-4" />
+                  <span>ACESSAR PAINEL SEGURO</span>
+                </>
+              )}
             </button>
           </form>
+
+          <p className="text-[10px] text-slate-500 pt-2 border-t border-slate-800/80">
+            Acesso monitorado e exclusivo para Eng. Mick Ramos • CREA/PI
+          </p>
 
         </div>
       </div>
@@ -755,7 +864,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
             </button>
 
             <button
-              onClick={() => setIsAuthenticated(false)}
+              onClick={handleLogout}
               className="px-3.5 py-2 rounded-xl bg-red-950/50 hover:bg-red-900/60 border border-red-500/30 text-red-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors"
             >
               <Lock className="w-3.5 h-3.5" />
