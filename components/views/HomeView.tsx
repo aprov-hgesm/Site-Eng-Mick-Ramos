@@ -3,7 +3,8 @@
 import React from 'react';
 import { 
   ShieldCheck, Target, Compass, HardHat, Users, Award, MapPin, 
-  ArrowRight, FolderCheck, Building2, FileCheck2, Sparkles, CheckCircle2 
+  ArrowRight, FolderCheck, Building2, FileCheck2, Sparkles, CheckCircle2,
+  Star, Quote, Search, FileText, Flame, Box
 } from 'lucide-react';
 import { SITE_INFO, SERVICES, Project } from '@/lib/siteData';
 import { useSiteData } from '@/lib/SiteContext';
@@ -20,8 +21,33 @@ export const HomeView: React.FC<HomeViewProps> = ({
   onOpenQuote,
   onSelectProject
 }) => {
-  const { projects } = useSiteData();
+  const { projects, services, siteInfo } = useSiteData();
   const featuredProjects = projects.slice(0, 4);
+  const featuredServices = services.slice(0, 4);
+
+  const testimonials = [
+    {
+      name: 'Carlos Eduardo M.',
+      role: 'Proprietário Residencial',
+      location: 'Parnaíba - PI',
+      text: 'O laudo técnico e o acompanhamento do Eng. Mick Ramos foram essenciais para garantir a segurança na ampliação do nosso imóvel. Atendimento ágil e com extremo rigor profissional.',
+      stars: 5,
+    },
+    {
+      name: 'Dra. Vanessa Alencar',
+      role: 'Diretora Clínica',
+      location: 'Luís Correia - PI',
+      text: 'A regularização do prédio comercial e o Habite-se foram concluídos dentro do prazo prometido e com toda transparência. Recomendo fortemente a MR Engenharia.',
+      stars: 5,
+    },
+    {
+      name: 'Marcos Vinícius S.',
+      role: 'Investidor Imobiliário',
+      location: 'Parnaíba - PI',
+      text: 'O projeto estrutural e a compatibilização BIM economizaram mais de 15% em materiais durante a fase de fundação. Solução técnica impecável.',
+      stars: 5,
+    },
+  ];
 
   return (
     <div className="space-y-0">
@@ -85,17 +111,17 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="lg:col-span-5 relative">
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-amber-500/30 group">
                 <img
-                  src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80"
+                  src={siteInfo.heroImageUrl || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80"}
                   alt="Engenharia e Arquitetura MR"
                   className="w-full h-[400px] sm:h-[480px] object-cover transform group-hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#0A1128] via-transparent to-transparent opacity-80" />
                 <div className="absolute bottom-6 left-6 right-6 p-4 rounded-xl bg-slate-950/80 backdrop-blur-md border border-amber-500/30 text-white">
                   <p className="text-xs font-bold text-amber-400 uppercase tracking-widest">
-                    Parnaíba • Litoral Piauiense
+                    {siteInfo.heroImageTag || 'Parnaíba • Litoral Piauiense'}
                   </p>
                   <p className="text-sm font-serif font-bold text-white mt-0.5">
-                    Residência Unifamiliar de Alto Padrão
+                    {siteInfo.heroImageTitle || 'Residência Unifamiliar de Alto Padrão'}
                   </p>
                 </div>
               </div>
@@ -202,7 +228,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             <div className="lg:col-span-5 grid grid-cols-1 gap-6">
               <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-200">
                 <img
-                  src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80"
+                  src={siteInfo.homeAboutImageUrl || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80"}
                   alt="Capacete de Engenharia e Planta Baixa"
                   className="w-full h-56 object-cover"
                 />
@@ -249,6 +275,77 @@ export const HomeView: React.FC<HomeViewProps> = ({
               </div>
             </div>
 
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED SERVICES SECTION */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-white border-b border-slate-200">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 text-amber-600 font-mono text-xs font-bold uppercase tracking-widest mb-2">
+                <span>SOLUÇÕES DE ENGENHARIA</span>
+                <span className="w-8 h-px bg-amber-500" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-serif font-bold text-slate-900">
+                Nossos Serviços em Destaque
+              </h2>
+            </div>
+
+            <button
+              onClick={() => {
+                setActiveTab('servicos');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 self-start md:self-auto"
+            >
+              <span>TODOS OS SERVIÇOS</span>
+              <ArrowRight className="w-4 h-4 text-amber-400" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {featuredServices.map((s) => (
+              <div
+                key={s.id}
+                className="group p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-white hover:border-amber-500/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+              >
+                <div className="space-y-4">
+                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
+                    {s.iconName === 'Search' && <Search className="w-6 h-6" />}
+                    {s.iconName === 'FileText' && <FileText className="w-6 h-6" />}
+                    {s.iconName === 'Building2' && <Building2 className="w-6 h-6" />}
+                    {s.iconName === 'FileCheck' && <FileCheck2 className="w-6 h-6" />}
+                    {s.iconName === 'HardHat' && <HardHat className="w-6 h-6" />}
+                    {s.iconName === 'Compass' && <Compass className="w-6 h-6" />}
+                    {s.iconName === 'Flame' && <Flame className="w-6 h-6" />}
+                    {s.iconName === 'Box' && <Box className="w-6 h-6" />}
+                  </div>
+
+                  <h3 className="font-serif font-bold text-slate-900 text-base uppercase tracking-wide group-hover:text-amber-600 transition-colors">
+                    {s.title}
+                  </h3>
+
+                  <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
+                    {s.shortDesc}
+                  </p>
+                </div>
+
+                <div className="pt-6">
+                  <button
+                    onClick={() => {
+                      setActiveTab('servicos');
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform"
+                  >
+                    <span>SAIBA MAIS</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -366,6 +463,54 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </div>
 
           </div>
+        </div>
+      </section>
+
+      {/* CLIENT TESTIMONIALS SECTION */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900 text-white border-b border-amber-500/20">
+        <div className="max-w-7xl mx-auto space-y-12">
+          
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <div className="inline-flex items-center gap-2 text-amber-400 font-mono text-xs font-bold uppercase tracking-widest">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>O QUE DIZEM NOSSOS CLIENTES</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-white">
+              Depoimentos de quem confia no nosso trabalho
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Satisfação garantida em projetos residenciais, laudos periciais e regularizações em Parnaíba e região.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((item, idx) => (
+              <div
+                key={idx}
+                className="bg-[#0A1128] p-8 rounded-2xl border border-amber-500/20 shadow-xl relative flex flex-col justify-between hover:border-amber-500/50 transition-colors"
+              >
+                <Quote className="w-10 h-10 text-amber-500/20 absolute top-6 right-6" />
+                
+                <div className="space-y-4 relative z-10">
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[...Array(item.stars)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-slate-300 text-sm leading-relaxed italic">
+                    &ldquo;{item.text}&rdquo;
+                  </p>
+                </div>
+
+                <div className="pt-6 border-t border-slate-800 mt-6 space-y-0.5">
+                  <span className="font-serif font-bold text-white text-base block">{item.name}</span>
+                  <span className="text-xs text-amber-400 font-medium block">{item.role}</span>
+                  <span className="text-[11px] text-slate-400 block">{item.location}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
         </div>
       </section>
 

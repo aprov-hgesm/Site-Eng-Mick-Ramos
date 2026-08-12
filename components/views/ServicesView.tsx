@@ -330,7 +330,7 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
                   Benefícios Diretos
                 </h4>
                 <ul className="space-y-2 text-xs text-slate-700">
-                  {selectedService.benefits.map((b, i) => (
+                  {(selectedService.benefits || []).map((b, i) => (
                     <li key={i} className="flex items-center gap-2">
                       <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
                       <span>{b}</span>
@@ -344,7 +344,7 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
                   O que você recebe (Entregáveis)
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedService.deliverables.map((d, i) => (
+                  {(selectedService.deliverables || []).map((d, i) => (
                     <span key={i} className="px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold">
                       • {d}
                     </span>

@@ -37,6 +37,21 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
     excerpt: 'Artigo técnico',
     content: { intro: 'Conteúdo', points: [], conclusion: 'Conclusão' }
   };
+
+  const contentObj = typeof post.content === 'object' && post.content !== null
+    ? {
+        intro: post.content.intro || post.excerpt || '',
+        points: Array.isArray(post.content.points) ? post.content.points : [],
+        warningBox: post.content.warningBox || '',
+        conclusion: post.content.conclusion || '',
+      }
+    : {
+        intro: typeof post.content === 'string' ? post.content : post.excerpt || '',
+        points: [],
+        warningBox: '',
+        conclusion: '',
+      };
+
   const relatedPosts = blogPosts.filter((p) => p.id !== post.id).slice(0, 3);
 
   const handleCopyLink = () => {
@@ -119,16 +134,16 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             {/* Introduction Paragraph */}
             <div className="prose prose-slate max-w-none text-slate-700 text-sm sm:text-base leading-relaxed space-y-4">
               <p className="text-slate-800 font-medium text-base sm:text-lg border-l-4 border-amber-500 pl-4 py-1 bg-amber-500/5">
-                {post.content.intro}
+                {contentObj.intro}
               </p>
 
               {/* Numbered Subsections */}
               <div className="space-y-6 pt-4">
-                {post.content.points.map((pt, index) => (
+                {contentObj.points.map((pt, index) => (
                   <div key={index} className="space-y-2">
                     <h3 className="text-lg sm:text-xl font-serif font-bold text-slate-900 flex items-center gap-2">
                       <span className="text-amber-600 font-mono text-base">{index + 1}.</span>
-                      <span>{pt.title.replace(/^\d+\.\s*/, '')}</span>
+                      <span>{(pt.title || '').replace(/^\d+\.\s*/, '')}</span>
                     </h3>
                     <p className="text-slate-600 leading-relaxed text-sm">
                       {pt.text}
@@ -138,20 +153,20 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
               </div>
 
               {/* Warning Callout Box */}
-              {post.content.warningBox && (
+              {contentObj.warningBox && (
                 <div className="p-5 rounded-xl bg-amber-50 border-l-4 border-amber-500 text-amber-950 space-y-2 my-6">
                   <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
                     <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                     <span>Atenção Técnica</span>
                   </div>
                   <p className="text-xs sm:text-sm text-slate-800 font-medium leading-relaxed">
-                    {post.content.warningBox}
+                    {contentObj.warningBox}
                   </p>
                 </div>
               )}
 
               <p className="pt-2 text-slate-700 font-medium">
-                {post.content.conclusion}
+                {contentObj.conclusion}
               </p>
             </div>
 

@@ -80,7 +80,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
             </h2>
 
             <div className="space-y-4 text-slate-600 text-sm sm:text-base leading-relaxed">
-              {aboutInfo.whoWeAreParagraphs.map((p, i) => (
+              {(aboutInfo.whoWeAreParagraphs || []).map((p, i) => (
                 <p key={i}>{p}</p>
               ))}
             </div>
@@ -119,7 +119,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-            {aboutInfo.values.map((v, idx) => (
+            {(aboutInfo.values || []).map((v, idx) => (
               <div
                 key={idx}
                 className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3 text-center sm:text-left flex flex-col justify-between"
@@ -149,20 +149,20 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
             <div>
-              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats.clients}</span>
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats?.clients || '150+'}</span>
               <span className="text-xs text-slate-300">Clientes atendidos</span>
             </div>
             <div>
-              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats.projects}</span>
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats?.projects || '200+'}</span>
               <span className="text-xs text-slate-300">Projetos desenvolvidos</span>
             </div>
             <div>
-              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats.years}</span>
+              <span className="text-3xl sm:text-4xl font-serif font-bold text-amber-400 block">{aboutInfo.stats?.years || '5+'}</span>
               <span className="text-xs text-slate-300">Anos de experiência</span>
             </div>
             <div>
-              <span className="text-lg sm:text-xl font-serif font-bold text-amber-400 block pt-1">{aboutInfo.stats.region}</span>
-              <span className="text-xs text-slate-300">{aboutInfo.stats.regionSubtitle}</span>
+              <span className="text-lg sm:text-xl font-serif font-bold text-amber-400 block pt-1">{aboutInfo.stats?.region || 'Parnaíba e Região'}</span>
+              <span className="text-xs text-slate-300">{aboutInfo.stats?.regionSubtitle || 'Litoral do Piauí'}</span>
             </div>
           </div>
         </div>
@@ -183,7 +183,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
             </h2>
 
             <ul className="space-y-3 text-slate-700 text-sm font-medium">
-              {aboutInfo.credentialsList.map((cred, idx) => (
+              {(aboutInfo.credentialsList || []).map((cred, idx) => (
                 <li key={idx} className="flex items-start gap-3">
                   <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <span>{cred}</span>

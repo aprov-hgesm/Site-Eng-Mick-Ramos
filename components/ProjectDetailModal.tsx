@@ -152,7 +152,7 @@ export const ProjectDetailModal: React.FC<ProjectDetailModalProps> = ({
               Destaques Técnicos
             </h4>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {project.features.map((feat, idx) => (
+              {(project.features || []).map((feat, idx) => (
                 <div key={idx} className="flex items-center gap-2.5 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-slate-800 text-xs font-semibold">
                   <Check className="w-4 h-4 text-amber-600 shrink-0" />
                   <span>{feat}</span>

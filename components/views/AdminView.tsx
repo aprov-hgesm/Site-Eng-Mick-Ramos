@@ -7,11 +7,13 @@ import {
   Calendar, Clock, User, Check, X, Layers, AlertTriangle, Eye, EyeOff, ShieldAlert, ArrowRight,
   Upload, FileUp, Star, Phone, Mail, MessageCircle, Save, CheckCircle2,
   Compass, Search, Building2, FileCheck, HardHat, Flame, Box, Wrench, HelpCircle,
-  GraduationCap, Quote, Target, Scale, Award
+  GraduationCap, Quote, Target, Scale, Award, Inbox, Sparkles
 } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
 import { Project, BlogPost, Service, BLOG_CATEGORIES, SiteContactInfo, AboutInfo, AboutValue } from '@/lib/siteData';
 import { MRLogo } from '../MRLogo';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
 // Helper to compress uploaded images to lightweight Base64 (preserves PNG/WebP transparency)
 const compressImageFile = (
@@ -93,26 +95,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     resetToDefaultData
   } = useSiteData();
 
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  // SHA-256 Hash of "Antonia1#"
+  const SECURE_PASSWORD_HASH = 'e218440d0b94b384218f7b6face3f8f051251c787e91ce378b1b59dc0e478145';
+
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedAuth = sessionStorage.getItem('mr_admin_auth');
+      return savedAuth === `true_${SECURE_PASSWORD_HASH}`;
+    }
+    return false;
+  });
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
-
-  // SHA-256 Hash of "Antonia1#"
-  const SECURE_PASSWORD_HASH = 'e218440d0b94b384218f7b6face3f8f051251c787e91ce378b1b59dc0e478145';
-
-  useEffect(() => {
-    // Check session storage for authenticated state on component mount
-    if (typeof window !== 'undefined') {
-      const savedAuth = sessionStorage.getItem('mr_admin_auth');
-      if (savedAuth === `true_${SECURE_PASSWORD_HASH}`) {
-        setIsAuthenticated(true);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     if (lockoutTimeLeft <= 0) return;
@@ -129,7 +127,46 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     return () => clearInterval(interval);
   }, [lockoutTimeLeft]);
 
-  const [adminTab, setAdminTab] = useState<'dashboard' | 'about' | 'projects' | 'services' | 'blog' | 'contact'>('dashboard');
+  const [adminTab, setAdminTab] = useState<'dashboard' | 'about' | 'projects' | 'services' | 'blog' | 'contact' | 'inbox' | 'home'>('dashboard');
+
+  // Messages & Quotes inbox state
+  const [messagesList, setMessagesList] = useState<any[]>([]);
+  const [quotesList, setQuotesList] = useState<any[]>([]);
+
+  // Home Images Upload State
+  const [isUploadingHeroImage, setIsUploadingHeroImage] = useState(false);
+  const [isUploadingHomeAboutImage, setIsUploadingHomeAboutImage] = useState(false);
+  const [isHeroDragOver, setIsHeroDragOver] = useState(false);
+  const [isHomeAboutDragOver, setIsHomeAboutDragOver] = useState(false);
+  const heroImageFileInputRef = useRef<HTMLInputElement | null>(null);
+  const homeAboutImageFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const unsubMsgs = onSnapshot(collection(db, 'contactMessages'), (snapshot) => {
+      const items: any[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setMessagesList(items);
+    });
+
+    const unsubQuotes = onSnapshot(collection(db, 'quoteRequests'), (snapshot) => {
+      const items: any[] = [];
+      snapshot.forEach((docSnap) => {
+        items.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setQuotesList(items);
+    });
+
+    return () => {
+      unsubMsgs();
+      unsubQuotes();
+    };
+  }, [isAuthenticated]);
 
   // Contact Form State
   const [contactForm, setContactForm] = useState<SiteContactInfo>(siteInfo);
@@ -208,6 +245,40 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
     } finally {
       setIsUploadingAboutOfficeImage(false);
+    }
+  };
+
+  const processHeroImageFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingHeroImage(true);
+    try {
+      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
+      const updated = { ...contactForm, heroImageUrl: compressed };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Imagem do banner principal salva e atualizada no site!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a imagem do banner.');
+    } finally {
+      setIsUploadingHeroImage(false);
+    }
+  };
+
+  const processHomeAboutImageFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingHomeAboutImage(true);
+    try {
+      const compressed = await compressImageFile(file, 1200, 900, 0.85);
+      const updated = { ...contactForm, homeAboutImageUrl: compressed };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Imagem da seção Quem Somos salva e atualizada no site!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a imagem.');
+    } finally {
+      setIsUploadingHomeAboutImage(false);
     }
   };
 
@@ -931,6 +1002,21 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
           </button>
 
           <button
+            onClick={() => {
+              setContactForm(siteInfo);
+              setAdminTab('home');
+            }}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+              adminTab === 'home'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Imagens do Início</span>
+          </button>
+
+          <button
             onClick={() => setAdminTab('projects')}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
               adminTab === 'projects'
@@ -994,6 +1080,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
           >
             <Phone className="w-4 h-4" />
             <span>Gerenciar Contato</span>
+          </button>
+
+          <button
+            onClick={() => setAdminTab('inbox')}
+            className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${
+              adminTab === 'inbox'
+                ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/60 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            <Inbox className="w-4 h-4" />
+            <span>Mensagens & Orçamentos ({messagesList.length + quotesList.length})</span>
           </button>
 
         </div>
@@ -2438,6 +2536,482 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* INBOX TAB (MESSAGES & QUOTES) */}
+        {adminTab === 'inbox' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                  <Inbox className="w-6 h-6 text-amber-400" />
+                  <span>Central de Mensagens & Orçamentos Recebidos</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Todas as solicitações de clientes feitas através do site oficial são salvas em tempo real no banco de dados da MR Engenharia.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <span className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
+                  {quotesList.length} Orçamentos
+                </span>
+                <span className="px-3 py-1.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold">
+                  {messagesList.length} Mensagens
+                </span>
+              </div>
+            </div>
+
+            {/* QUOTE REQUESTS SECTION */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                <Building2 className="w-5 h-5 text-amber-400" />
+                <span>Solicitações de Orçamento ({quotesList.length})</span>
+              </h3>
+
+              {quotesList.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-slate-900/50 border border-slate-800 text-center text-slate-400 text-sm">
+                  Nenhuma solicitação de orçamento registrada até o momento.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {quotesList.map((q) => (
+                    <div key={q.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-amber-500/30 transition-all space-y-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-amber-400 block">{q.service || 'Orçamento'}</span>
+                          <h4 className="text-base font-bold text-white">{q.name}</h4>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {q.createdAt ? new Date(q.createdAt).toLocaleDateString('pt-BR') : 'Recent'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 bg-slate-950/50 p-3 rounded-xl">
+                        <div><strong>Telefone/WA:</strong> {q.phone || 'N/I'}</div>
+                        <div><strong>E-mail:</strong> {q.email || 'N/I'}</div>
+                        <div><strong>Imóvel:</strong> {q.propertyType} ({q.areaSize} m²)</div>
+                        <div><strong>Local:</strong> {q.location}</div>
+                      </div>
+
+                      {q.details && (
+                        <div className="text-xs text-slate-300 bg-slate-800/40 p-3 rounded-xl border border-slate-800">
+                          <strong className="text-slate-400 block text-[10px] uppercase mb-1">Observações do Cliente:</strong>
+                          {q.details}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                        <div className="flex gap-2">
+                          {q.phone && (
+                            <a
+                              href={`https://wa.me/55${q.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                          {q.email && (
+                            <a
+                              href={`mailto:${q.email}`}
+                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] flex items-center gap-1"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              <span>E-mail</span>
+                            </a>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            if (confirm('Deseja excluir esta solicitação de orçamento?')) {
+                              await deleteDoc(doc(db, 'quoteRequests', q.id));
+                            }
+                          }}
+                          className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                          title="Excluir da Lista"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* CONTACT MESSAGES SECTION */}
+            <div className="space-y-4 pt-4 border-t border-slate-800">
+              <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-2">
+                <Mail className="w-5 h-5 text-blue-400" />
+                <span>Mensagens Fale Conosco ({messagesList.length})</span>
+              </h3>
+
+              {messagesList.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-slate-900/50 border border-slate-800 text-center text-slate-400 text-sm">
+                  Nenhuma mensagem de contato recebida até o momento.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {messagesList.map((m) => (
+                    <div key={m.id} className="p-5 rounded-2xl bg-slate-900 border border-slate-800 hover:border-blue-500/30 transition-all space-y-3">
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-800 pb-2">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-blue-400 block">{m.subject || 'Contato'}</span>
+                          <h4 className="text-base font-bold text-white">{m.name}</h4>
+                        </div>
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          {m.createdAt ? new Date(m.createdAt).toLocaleDateString('pt-BR') : 'Recent'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs text-slate-300 bg-slate-950/50 p-3 rounded-xl">
+                        <div><strong>WhatsApp:</strong> {m.whatsapp || 'N/I'}</div>
+                        <div><strong>E-mail:</strong> {m.email || 'N/I'}</div>
+                      </div>
+
+                      <div className="text-xs text-slate-300 bg-slate-800/40 p-3 rounded-xl border border-slate-800">
+                        <strong className="text-slate-400 block text-[10px] uppercase mb-1">Mensagem:</strong>
+                        {m.message}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+                        <div className="flex gap-2">
+                          {m.whatsapp && (
+                            <a
+                              href={`https://wa.me/55${m.whatsapp.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] flex items-center gap-1"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                              <span>WhatsApp</span>
+                            </a>
+                          )}
+                          {m.email && (
+                            <a
+                              href={`mailto:${m.email}`}
+                              className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-[11px] flex items-center gap-1"
+                            >
+                              <Mail className="w-3.5 h-3.5" />
+                              <span>E-mail</span>
+                            </a>
+                          )}
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            if (confirm('Deseja excluir esta mensagem?')) {
+                              await deleteDoc(doc(db, 'contactMessages', m.id));
+                            }
+                          }}
+                          className="p-2 text-slate-500 hover:text-red-400 transition-colors"
+                          title="Excluir da Lista"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>
+        )}
+
+        {/* HOME TAB (IMAGENS DA ABA INÍCIO) */}
+        {adminTab === 'home' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-6 h-6 text-amber-400" />
+                  <span>Gerenciar Imagens da Aba Início</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  Altere as imagens exibidas no topo (Hero Banner) e na seção institucional da página inicial. Todas as alterações são salvas e sincronizadas instantaneamente no banco de dados.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveContact}
+                className="px-5 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+              >
+                <Save className="w-4 h-4" />
+                <span>Salvar Alterações do Início</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+              {/* 1. HERO BANNER IMAGE CARD */}
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-serif font-bold text-white flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-amber-400" />
+                        <span>1. Imagem do Banner Principal (Hero)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Imagem de destaque exibida no cabeçalho inicial do site.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Previsualização em Tempo Real com Moldura */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-amber-500/30 group bg-slate-950">
+                    <img
+                      src={contactForm.heroImageUrl || "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80"}
+                      alt="Banner Hero Preview"
+                      className="w-full h-64 object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#0A1128] via-transparent to-transparent opacity-80" />
+                    <div className="absolute bottom-3 left-3 right-3 p-3 rounded-xl bg-slate-950/80 backdrop-blur-md border border-amber-500/30 text-white">
+                      <p className="text-[10px] font-bold text-amber-400 uppercase tracking-widest">
+                        {contactForm.heroImageTag || 'Parnaíba • Litoral Piauiense'}
+                      </p>
+                      <p className="text-xs font-serif font-bold text-white mt-0.5">
+                        {contactForm.heroImageTitle || 'Residência Unifamiliar de Alto Padrão'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Zona de Drop & Upload */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsHeroDragOver(true); }}
+                    onDragLeave={() => setIsHeroDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsHeroDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) processHeroImageFile(file);
+                    }}
+                    className={`p-5 rounded-2xl border-2 border-dashed transition-all text-center space-y-3 ${
+                      isHeroDragOver
+                        ? 'border-amber-400 bg-amber-500/10'
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={heroImageFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) processHeroImageFile(file);
+                      }}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <FileUp className="w-6 h-6" />
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Arraste e solte uma imagem aqui
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        ou clique para escolher um arquivo do seu computador/celular
+                      </p>
+                    </div>
+
+                    <div className="pt-1 flex justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => heroImageFileInputRef.current?.click()}
+                        disabled={isUploadingHeroImage}
+                        className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{isUploadingHeroImage ? 'Processando...' : 'Fazer Upload de Imagem'}</span>
+                      </button>
+
+                      {contactForm.heroImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setContactForm({ ...contactForm, heroImageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80' })}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                          title="Restaurar Imagem Padrão"
+                        >
+                          <RotateCcw className="w-4 h-4 text-amber-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* URL Externa Manual */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Ou informe a URL da imagem do Banner:
+                    </label>
+                    <input
+                      type="text"
+                      value={contactForm.heroImageUrl || ''}
+                      onChange={(e) => setContactForm({ ...contactForm, heroImageUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* Legenda do Card no Banner */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Subtítulo / Localização na Imagem:
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.heroImageTag || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, heroImageTag: e.target.value })}
+                        placeholder="Ex: Parnaíba • Litoral Piauiense"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Título do Projeto na Imagem:
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.heroImageTitle || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, heroImageTitle: e.target.value })}
+                        placeholder="Ex: Residência Unifamiliar de Alto Padrão"
+                        className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* 2. QUEM SOMOS SECTION IMAGE CARD */}
+              <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 space-y-6 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-base font-serif font-bold text-white flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-amber-400" />
+                        <span>2. Imagem da Seção &quot;Quem Somos&quot; (Início)</span>
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Exibida no bloco institucional do Início.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Previsualização em Tempo Real */}
+                  <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-700 bg-slate-950">
+                    <img
+                      src={contactForm.homeAboutImageUrl || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80"}
+                      alt="Quem Somos Preview"
+                      className="w-full h-64 object-cover"
+                    />
+                  </div>
+
+                  {/* Zona de Drop & Upload */}
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsHomeAboutDragOver(true); }}
+                    onDragLeave={() => setIsHomeAboutDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsHomeAboutDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) processHomeAboutImageFile(file);
+                    }}
+                    className={`p-5 rounded-2xl border-2 border-dashed transition-all text-center space-y-3 ${
+                      isHomeAboutDragOver
+                        ? 'border-amber-400 bg-amber-500/10'
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={homeAboutImageFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) processHomeAboutImageFile(file);
+                      }}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <FileUp className="w-6 h-6" />
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Arraste e solte uma imagem aqui
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        ou clique para escolher um arquivo do seu dispositivo
+                      </p>
+                    </div>
+
+                    <div className="pt-1 flex justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => homeAboutImageFileInputRef.current?.click()}
+                        disabled={isUploadingHomeAboutImage}
+                        className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>{isUploadingHomeAboutImage ? 'Processando...' : 'Fazer Upload de Imagem'}</span>
+                      </button>
+
+                      {contactForm.homeAboutImageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setContactForm({ ...contactForm, homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80' })}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                          title="Restaurar Imagem Padrão"
+                        >
+                          <RotateCcw className="w-4 h-4 text-amber-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* URL Externa Manual */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-300 mb-1">
+                      Ou informe a URL da imagem da seção Quem Somos:
+                    </label>
+                    <input
+                      type="text"
+                      value={contactForm.homeAboutImageUrl || ''}
+                      onChange={(e) => setContactForm({ ...contactForm, homeAboutImageUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                    />
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            {/* Bottom Save Action Bar */}
+            <div className="p-6 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-between">
+              <div className="text-xs text-slate-400">
+                Ao clicar em salvar, todas as imagens e legendas do Início serão salvas e atualizadas instantaneamente no site.
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveContact}
+                className="px-6 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-amber-500/20"
+              >
+                <Save className="w-4 h-4" />
+                <span>Salvar e Publicar Alterações do Início</span>
+              </button>
+            </div>
+
           </div>
         )}
 

@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, Send, Building, ShieldCheck, FileCheck2, Calculator, Mail } from 'lucide-react';
+import { X, CheckCircle2, Send, Building, ShieldCheck, FileCheck2, Calculator, Mail, Copy, Check, ExternalLink } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 interface QuoteModalProps {
   isOpen: boolean;
@@ -25,39 +27,67 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [email, setEmail] = useState('');
   const [details, setDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   if (!isOpen) return null;
 
   const targetEmail = 'engcivilmickramos@gmail.com';
 
-  const handleSendEmail = () => {
-    const mailSubject = `[SOLICITAÇÃO DE ORÇAMENTO] ${service} - ${name}`;
-    const mailBody = 
-      `SOLICITAÇÃO DE ORÇAMENTO - MR ENGENHARIA CIVIL\n\n` +
-      `-------------------------------------------\n` +
-      `DADOS DO CLIENTE:\n` +
-      `Nome Completo: ${name}\n` +
-      `WhatsApp / Telefone: ${phone}\n` +
-      `E-mail: ${email || 'Não informado'}\n\n` +
-      `-------------------------------------------\n` +
-      `DETALHES DO PROJETO / SERVIÇO:\n` +
-      `Serviço Requerido: ${service}\n` +
-      `Tipo de Imóvel: ${propertyType}\n` +
-      `Área Aproximada: ${areaSize} m²\n` +
-      `Cidade / Localização: ${location}\n\n` +
-      `-------------------------------------------\n` +
-      `OBSERVAÇÕES / DETALHES:\n${details || 'Sem observações adicionais.'}\n\n` +
-      `-------------------------------------------\n` +
-      `Solicitação padronizada gerada pelo site oficial da MR Engenharia.`;
+  const mailSubject = `[SOLICITAÇÃO DE ORÇAMENTO] ${service} - ${name}`;
+  const mailBody = 
+    `SOLICITAÇÃO DE ORÇAMENTO - MR ENGENHARIA CIVIL\n\n` +
+    `-------------------------------------------\n` +
+    `DADOS DO CLIENTE:\n` +
+    `Nome Completo: ${name}\n` +
+    `WhatsApp / Telefone: ${phone}\n` +
+    `E-mail: ${email || 'Não informado'}\n\n` +
+    `-------------------------------------------\n` +
+    `DETALHES DO PROJETO / SERVIÇO:\n` +
+    `Serviço Requerido: ${service}\n` +
+    `Tipo de Imóvel: ${propertyType}\n` +
+    `Área Aproximada: ${areaSize} m²\n` +
+    `Cidade / Localização: ${location}\n\n` +
+    `-------------------------------------------\n` +
+    `OBSERVAÇÕES / DETALHES:\n${details || 'Sem observações adicionais.'}\n\n` +
+    `-------------------------------------------\n` +
+    `Solicitação padronizada gerada pelo site oficial da MR Engenharia.`;
 
+  const handleOpenGmail = () => {
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+    window.open(gmailUrl, '_blank');
+  };
+
+  const handleSendMailto = () => {
     const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
     window.location.href = mailtoUrl;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(mailBody);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    try {
+      await addDoc(collection(db, 'quoteRequests'), {
+        name,
+        phone,
+        email,
+        service,
+        propertyType,
+        areaSize,
+        location,
+        details,
+        targetEmail,
+        createdAt: new Date().toISOString(),
+        status: 'nova',
+      });
+    } catch (err) {
+      console.error('Erro ao salvar orçamento no Firestore:', err);
+    }
     setSubmitted(true);
-    handleSendEmail();
   };
 
   const handleSendWhatsApp = () => {
@@ -132,27 +162,41 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                 <div>• <strong>Cidade:</strong> {location}</div>
               </div>
 
-              <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+              <div className="pt-4 flex flex-wrap gap-2.5 justify-center">
                 <button
-                  onClick={handleSendEmail}
-                  className="px-5 py-3 bg-[#0A1128] hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg transition-colors"
+                  onClick={handleOpenGmail}
+                  className="px-4 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-md transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  <span>Enviar por E-mail</span>
+                  <span>Abrir no Gmail Web</span>
                 </button>
                 <button
                   onClick={handleSendWhatsApp}
-                  className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 transition-colors"
+                  className="px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-colors"
                 >
                   <Send className="w-4 h-4" />
                   <span>Enviar no WhatsApp</span>
+                </button>
+                <button
+                  onClick={handleCopyMessage}
+                  className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  <span>{copied ? 'Copiado!' : 'Copiar Resumo'}</span>
+                </button>
+                <button
+                  onClick={handleSendMailto}
+                  className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                  <span>App de E-mail</span>
                 </button>
                 <button
                   onClick={() => {
                     setSubmitted(false);
                     onClose();
                   }}
-                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                  className="px-4 py-3 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
                 >
                   Fechar
                 </button>

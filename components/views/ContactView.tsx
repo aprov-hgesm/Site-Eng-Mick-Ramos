@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { 
   Phone, Mail, MapPin, Clock, MessageCircle, Send, CheckCircle2, 
-  ShieldCheck, Upload, ExternalLink, HelpCircle 
+  ShieldCheck, Upload, ExternalLink, HelpCircle, Copy, Check
 } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
+import { db } from '@/lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 
 export const ContactView: React.FC = () => {
   const { siteInfo } = useSiteData();
@@ -17,36 +19,94 @@ export const ContactView: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
   const [agreed, setAgreed] = useState(true);
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const targetEmail = 'engcivilmickramos@gmail.com';
 
-  const handleSendEmail = () => {
-    const mailSubject = `[CONTATO - SITE] ${subject} - ${name}`;
-    const mailBody = 
-      `MENSAGEM DE CONTATO - MR ENGENHARIA CIVIL\n\n` +
-      `-------------------------------------------\n` +
-      `DADOS DO CONTATO:\n` +
-      `Nome Completo: ${name}\n` +
-      `E-mail do Cliente: ${email}\n` +
-      `WhatsApp / Telefone: ${whatsapp}\n` +
-      `Assunto: ${subject}\n\n` +
-      `-------------------------------------------\n` +
-      `MENSAGEM:\n${message}\n\n` +
-      `-------------------------------------------\n` +
-      `Mensagem padronizada enviada pelo site oficial da MR Engenharia.`;
+  const mailSubject = `[CONTATO - SITE] ${subject} - ${name}`;
+  const mailBody = 
+    `MENSAGEM DE CONTATO - MR ENGENHARIA CIVIL\n\n` +
+    `-------------------------------------------\n` +
+    `DADOS DO CONTATO:\n` +
+    `Nome Completo: ${name}\n` +
+    `E-mail do Cliente: ${email}\n` +
+    `WhatsApp / Telefone: ${whatsapp}\n` +
+    `Assunto: ${subject}\n\n` +
+    `-------------------------------------------\n` +
+    `MENSAGEM:\n${message}\n\n` +
+    `-------------------------------------------\n` +
+    `Mensagem padronizada enviada pelo site oficial da MR Engenharia.`;
 
+  const handleOpenGmail = () => {
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${targetEmail}&su=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
+    window.open(gmailUrl, '_blank');
+  };
+
+  const handleSendMailto = () => {
     const mailtoUrl = `mailto:${targetEmail}?subject=${encodeURIComponent(mailSubject)}&body=${encodeURIComponent(mailBody)}`;
     window.location.href = mailtoUrl;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCopyMessage = () => {
+    navigator.clipboard.writeText(mailBody);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!agreed) {
       alert('Por favor, aceite os termos de privacidade para enviar.');
       return;
     }
-    setSubmitted(true);
-    handleSendEmail();
+
+    setLoading(true);
+    setErrorMessage(null);
+
+    // 1. Save directly to Firestore database so message is never lost
+    try {
+      await addDoc(collection(db, 'contactMessages'), {
+        name,
+        email,
+        whatsapp,
+        subject,
+        message,
+        targetEmail,
+        createdAt: new Date().toISOString(),
+        status: 'nova',
+      });
+    } catch (dbErr) {
+      console.error('Erro ao registrar no Firestore:', dbErr);
+    }
+
+    // 2. Try sending via EmailJS
+    try {
+      await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          service_id: 'service_xud0pne',
+          template_id: 'template_77p928m',
+          user_id: 'tf-Z6BFUcuXuEt4BQ',
+          template_params: {
+            nome: name,
+            email: email,
+            whatsapp: whatsapp,
+            assunto: subject,
+            mensagem: message,
+          },
+        }),
+      });
+    } catch (error) {
+      console.warn('Erro ao tentar envio direto via EmailJS:', error);
+    } finally {
+      setSubmitted(true);
+      setLoading(false);
+    }
   };
 
   const handleSendWhatsApp = () => {
@@ -148,20 +208,34 @@ export const ContactView: React.FC = () => {
                   <div>• <strong>WhatsApp:</strong> {whatsapp}</div>
                 </div>
 
-                <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+                <div className="pt-2 flex flex-wrap gap-3 justify-center">
                   <button
-                    onClick={handleSendEmail}
-                    className="px-5 py-3 bg-[#0A1128] hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 shadow-md transition-colors"
+                    onClick={handleOpenGmail}
+                    className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 shadow-md transition-colors"
                   >
                     <Mail className="w-4 h-4" />
-                    <span>Enviar por E-mail</span>
+                    <span>Abrir no Gmail Web</span>
                   </button>
                   <button
                     onClick={handleSendWhatsApp}
                     className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 shadow-md transition-colors"
                   >
                     <MessageCircle className="w-4 h-4" />
-                    <span>Enviar via WhatsApp</span>
+                    <span>Enviar no WhatsApp</span>
+                  </button>
+                  <button
+                    onClick={handleCopyMessage}
+                    className="px-4 py-3 bg-slate-800 hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span>{copied ? 'Copiado!' : 'Copiar Texto'}</span>
+                  </button>
+                  <button
+                    onClick={handleSendMailto}
+                    className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl inline-flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    <span>App de E-mail (mailto)</span>
                   </button>
                 </div>
               </div>
@@ -277,12 +351,35 @@ export const ContactView: React.FC = () => {
                   </label>
                 </div>
 
+                {errorMessage && (
+                  <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center justify-between gap-2">
+                    <span>{errorMessage}</span>
+                    <button
+                      type="button"
+                      onClick={() => setErrorMessage(null)}
+                      className="text-red-700 font-bold hover:text-red-900 px-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  className="w-full py-3.5 bg-[#0A1128] hover:bg-slate-900 text-amber-400 font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
+                  disabled={loading}
+                  className="w-full py-3.5 bg-[#0A1128] hover:bg-slate-900 disabled:opacity-75 text-amber-400 font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <Send className="w-4 h-4" />
-                  <span>ENVIAR MENSAGEM</span>
+                  {loading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                      <span>ENVIANDO...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4" />
+                      <span>ENVIAR MENSAGEM</span>
+                    </>
+                  )}
                 </button>
               </form>
             )}

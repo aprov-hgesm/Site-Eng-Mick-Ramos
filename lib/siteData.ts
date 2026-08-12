@@ -132,6 +132,10 @@ export interface SiteContactInfo {
   stats: { label: string; value: string; icon: string }[];
   headerLogoUrl?: string;
   footerLogoUrl?: string;
+  heroImageUrl?: string;
+  heroImageTag?: string;
+  heroImageTitle?: string;
+  homeAboutImageUrl?: string;
 }
 
 export const DEFAULT_SITE_INFO: SiteContactInfo = {
@@ -148,6 +152,10 @@ export const DEFAULT_SITE_INFO: SiteContactInfo = {
   hours: 'Segunda a Sexta: 8h às 18h | Sábado: 8h às 12h',
   headerLogoUrl: '',
   footerLogoUrl: '',
+  heroImageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1000&q=80',
+  heroImageTag: 'Parnaíba • Litoral Piauiense',
+  heroImageTitle: 'Residência Unifamiliar de Alto Padrão',
+  homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
   stats: [
     { label: 'Clientes atendidos', value: '+150', icon: 'Users' },
     { label: 'Projetos desenvolvidos', value: '+250', icon: 'FolderCheck' },

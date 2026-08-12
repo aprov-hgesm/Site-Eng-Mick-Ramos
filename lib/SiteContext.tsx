@@ -42,30 +42,41 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [siteInfo, setSiteInfo] = useState<SiteContactInfo>(DEFAULT_SITE_INFO);
   const [aboutInfo, setAboutInfo] = useState<AboutInfo>(DEFAULT_ABOUT_INFO);
 
-  // Load from local storage immediately as initial fast cache
-  useEffect(() => {
-    try {
-      const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-      if (savedProjects) setProjects(JSON.parse(savedProjects));
-
-      const savedPosts = localStorage.getItem(BLOG_STORAGE_KEY);
-      if (savedPosts) setBlogPosts(JSON.parse(savedPosts));
-
-      const savedServices = localStorage.getItem(SERVICES_STORAGE_KEY);
-      if (savedServices) setServices(JSON.parse(savedServices));
-
-      const savedInfo = localStorage.getItem(SITE_INFO_STORAGE_KEY);
-      if (savedInfo) setSiteInfo(JSON.parse(savedInfo));
-
-      const savedAbout = localStorage.getItem(ABOUT_INFO_STORAGE_KEY);
-      if (savedAbout) setAboutInfo(JSON.parse(savedAbout));
-    } catch (e) {
-      console.error('Error loading initial cache from localStorage:', e);
-    }
-  }, []);
-
   // Listen to Firestore changes in real-time across all devices
   useEffect(() => {
+    // Read local cache safely after mount to avoid server/client hydration mismatch
+    try {
+      const savedSiteInfo = localStorage.getItem(SITE_INFO_STORAGE_KEY);
+      if (savedSiteInfo) {
+        const data = JSON.parse(savedSiteInfo);
+        queueMicrotask(() => setSiteInfo(data));
+      }
+
+      const savedAboutInfo = localStorage.getItem(ABOUT_INFO_STORAGE_KEY);
+      if (savedAboutInfo) {
+        const data = JSON.parse(savedAboutInfo);
+        queueMicrotask(() => setAboutInfo(data));
+      }
+
+      const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
+      if (savedProjects) {
+        const data = JSON.parse(savedProjects);
+        queueMicrotask(() => setProjects(data));
+      }
+
+      const savedBlog = localStorage.getItem(BLOG_STORAGE_KEY);
+      if (savedBlog) {
+        const data = JSON.parse(savedBlog);
+        queueMicrotask(() => setBlogPosts(data));
+      }
+
+      const savedServices = localStorage.getItem(SERVICES_STORAGE_KEY);
+      if (savedServices) {
+        const data = JSON.parse(savedServices);
+        queueMicrotask(() => setServices(data));
+      }
+    } catch (e) {}
+
     // 1. Site Info (contact details, logos, phone, wa, CREA)
     const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), async (snapshot) => {
       if (snapshot.exists()) {

@@ -31,5 +31,10 @@ service cloud.firestore {
     match /quoteRequests/{requestId} {
       allow read, write: if true;
     }
+
+    // Contact messages
+    match /contactMessages/{messageId} {
+      allow read, write: if true;
+    }
   }
 }

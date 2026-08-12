@@ -19,13 +19,23 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   title,
 }) => {
   const [currentIndex, setCurrentIndex] = useState<number>(initialIndex);
+  const [prevInitialIndex, setPrevInitialIndex] = useState(initialIndex);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Sync index when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      setCurrentIndex(initialIndex >= 0 && initialIndex < images.length ? initialIndex : 0);
-    }
-  }, [isOpen, initialIndex, images.length]);
+  // Sync index when modal opens or initialIndex changes
+  if (isOpen !== prevIsOpen || (isOpen && initialIndex !== prevInitialIndex)) {
+    setPrevIsOpen(isOpen);
+    setPrevInitialIndex(initialIndex);
+    setCurrentIndex(initialIndex >= 0 && initialIndex < images.length ? initialIndex : 0);
+  }
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -43,17 +53,9 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, currentIndex, images.length]);
+  }, [isOpen, images.length, onClose]);
 
   if (!isOpen || images.length === 0) return null;
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
 
   const activeImage = images[currentIndex] || images[0];
 
