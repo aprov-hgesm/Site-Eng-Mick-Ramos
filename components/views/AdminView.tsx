@@ -357,6 +357,28 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     triggerToast('Logo do rodapé restaurada em todos os dispositivos!');
   };
 
+  // Services Hero Image State
+  const [isUploadingServicesHeroImage, setIsUploadingServicesHeroImage] = useState(false);
+  const [isServicesHeroDragOver, setIsServicesHeroDragOver] = useState(false);
+  const servicesHeroFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const processServicesHeroFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingServicesHeroImage(true);
+    try {
+      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
+      const updated = { ...contactForm, servicesHeroImage: compressed };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Imagem de capa da aba Serviços salva e sincronizada!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a imagem do cabeçalho de Serviços.');
+    } finally {
+      setIsUploadingServicesHeroImage(false);
+    }
+  };
+
   // Service Modal State
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -365,9 +387,28 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     shortDesc: '',
     fullDesc: '',
     iconName: 'Compass',
+    imageUrl: '',
     benefitsText: '',
     deliverablesText: '',
   });
+  const [isUploadingServiceImage, setIsUploadingServiceImage] = useState(false);
+  const [isServiceImageDragOver, setIsServiceImageDragOver] = useState(false);
+  const serviceImageFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const processServiceImageFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingServiceImage(true);
+    try {
+      const compressed = await compressImageFile(file, 1200, 900, 0.85);
+      setServiceForm((prev) => ({ ...prev, imageUrl: compressed }));
+      triggerToast('Imagem do serviço anexada com sucesso!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao processar imagem do serviço.');
+    } finally {
+      setIsUploadingServiceImage(false);
+    }
+  };
 
   const getServiceIcon = (iconName: string) => {
     switch (iconName) {
@@ -390,6 +431,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       shortDesc: '',
       fullDesc: '',
       iconName: 'Compass',
+      imageUrl: '',
       benefitsText: 'Relatório detalhado\nDiagnóstico de falhas\nOrientações preventivas e corretivas',
       deliverablesText: 'Laudo fotográfico\nChecklist estrutural\nTermo de Vistoria',
     });
@@ -403,6 +445,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       shortDesc: service.shortDesc,
       fullDesc: service.fullDesc,
       iconName: service.iconName || 'Compass',
+      imageUrl: service.imageUrl || service.image || '',
       benefitsText: service.benefits ? service.benefits.join('\n') : '',
       deliverablesText: service.deliverables ? service.deliverables.join('\n') : '',
     });
@@ -425,6 +468,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       shortDesc: serviceForm.shortDesc,
       fullDesc: serviceForm.fullDesc,
       iconName: serviceForm.iconName,
+      imageUrl: serviceForm.imageUrl,
+      image: serviceForm.imageUrl,
       benefits,
       deliverables,
     };
@@ -1362,6 +1407,238 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
           </div>
         )}
 
+        {/* SERVICES TAB MANAGER */}
+        {adminTab === 'services' && (
+          <div className="space-y-8 animate-in fade-in duration-300">
+            
+            {/* 1. SEÇÃO DE IMAGEM DA ABA SERVIÇOS (HEADER HERO BANNER) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                    <ImageIcon className="w-5 h-5 text-amber-400" />
+                    <span>Imagem Principal da Aba &quot;Serviços&quot;</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Altere a foto de destaque do cabeçalho da página de Serviços no site.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                {/* Live Preview */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase block">Pré-visualização do Cabeçalho</span>
+                  <div className="relative rounded-xl overflow-hidden shadow-lg border border-slate-700 bg-slate-950 group">
+                    <img
+                      src={contactForm.servicesHeroImage || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80"}
+                      alt="Capa da Aba Serviços"
+                      className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-3">
+                      <span className="text-xs font-bold text-amber-400 font-serif">
+                        Aba Serviços • Banner de Topo
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Drop Zone & Controls */}
+                <div className="space-y-3">
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsServicesHeroDragOver(true); }}
+                    onDragLeave={() => setIsServicesHeroDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsServicesHeroDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) processServicesHeroFile(file);
+                    }}
+                    className={`p-4 rounded-xl border-2 border-dashed transition-all text-center space-y-2 ${
+                      isServicesHeroDragOver
+                        ? 'border-amber-400 bg-amber-500/10'
+                        : 'border-slate-800 bg-slate-950 hover:border-slate-700'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={servicesHeroFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) processServicesHeroFile(file);
+                      }}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <FileUp className="w-5 h-5" />
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-white">
+                        Arraste e solte uma nova imagem para a capa da aba Serviços
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        ou clique para selecionar do seu dispositivo (JPG, PNG, WEBP)
+                      </p>
+                    </div>
+
+                    <div className="pt-1 flex justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => servicesHeroFileInputRef.current?.click()}
+                        disabled={isUploadingServicesHeroImage}
+                        className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploadingServicesHeroImage ? 'Processando...' : 'Fazer Upload de Foto'}</span>
+                      </button>
+
+                      {contactForm.servicesHeroImage && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const updated = { ...contactForm, servicesHeroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80' };
+                            setContactForm(updated);
+                            await updateSiteInfo(updated);
+                            triggerToast('Imagem do cabeçalho de Serviços restaurada para a padrão!');
+                          }}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                          title="Restaurar Imagem Padrão"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                      Ou informe o link direto (URL) da imagem:
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={contactForm.servicesHeroImage || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, servicesHeroImage: e.target.value })}
+                        placeholder="https://images.unsplash.com/..."
+                        className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await updateSiteInfo(contactForm);
+                          triggerToast('URL da imagem do cabeçalho de Serviços salva!');
+                        }}
+                        className="px-3 py-2 bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-slate-950 font-bold text-xs rounded-xl transition-colors shrink-0"
+                      >
+                        Salvar URL
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. GERENCIAMENTO DE SERVIÇOS CADASTRADOS */}
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div>
+                  <h2 className="text-xl font-serif font-bold text-white flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-amber-400" />
+                    <span>Serviços Cadastrados no Site ({services.length})</span>
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Cadastre, edite fotos, títulos, descrições e entregáveis dos serviços oferecidos.
+                  </p>
+                </div>
+
+                <button
+                  onClick={openNewServiceModal}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-lg"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>CADASTRAR NOVO SERVIÇO</span>
+                </button>
+              </div>
+
+              {/* SERVICES LIST TABLE */}
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs text-slate-300">
+                    <thead className="bg-[#0A1128] text-amber-400 uppercase text-[10px] tracking-wider font-mono border-b border-slate-800">
+                      <tr>
+                        <th className="p-4">Foto / Ícone</th>
+                        <th className="p-4">Título do Serviço</th>
+                        <th className="p-4">Descrição Curta</th>
+                        <th className="p-4">Entregáveis</th>
+                        <th className="p-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800">
+                      {services.map((s) => {
+                        const img = s.imageUrl || s.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80';
+                        return (
+                          <tr key={s.id} className="hover:bg-slate-800/50 transition-colors">
+                            <td className="p-4">
+                              <div className="relative w-14 h-10 rounded-lg overflow-hidden border border-slate-700 bg-slate-950">
+                                <img
+                                  src={img}
+                                  alt={s.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-0 right-0 p-0.5 bg-slate-950/80 rounded-tl">
+                                  {getServiceIcon(s.iconName)}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <strong className="text-white text-sm block font-serif uppercase">{s.title}</strong>
+                            </td>
+                            <td className="p-4 max-w-xs">
+                              <p className="text-slate-400 text-xs line-clamp-2 leading-relaxed">{s.shortDesc}</p>
+                            </td>
+                            <td className="p-4">
+                              <span className="px-2.5 py-1 rounded bg-amber-500/10 text-amber-300 font-mono text-[10px] uppercase font-bold border border-amber-500/20">
+                                {s.deliverables ? `${s.deliverables.length} item(ns)` : 'Nenhum'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => openEditServiceModal(s)}
+                                  className="p-2 rounded-lg bg-slate-800 hover:bg-amber-500 hover:text-slate-950 text-slate-300 transition-colors"
+                                  title="Editar Serviço e Foto"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => setConfirmModal({
+                                    isOpen: true,
+                                    type: 'delete_service',
+                                    id: s.id,
+                                    title: s.title
+                                  })}
+                                  className="p-2 rounded-lg bg-red-950/40 border border-red-500/30 text-red-400 hover:bg-red-900 transition-colors"
+                                  title="Excluir Serviço"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
         {/* BLOG TAB MANAGER */}
         {adminTab === 'blog' && (
           <div className="space-y-6">
@@ -1519,27 +1796,55 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-300 mb-1">
-                      Imagem de Destaque do Cabeçalho (Capacete / Projeto)
-                    </label>
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
-                      {aboutForm.heroImage && (
-                        <img
-                          src={aboutForm.heroImage}
-                          alt="Hero Preview"
-                          className="w-24 h-20 object-cover rounded-xl border border-slate-700 bg-slate-950 shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 w-full space-y-2">
-                        <input
-                          type="text"
-                          value={aboutForm.heroImage}
-                          onChange={(e) => setAboutForm({ ...aboutForm, heroImage: e.target.value })}
-                          placeholder="https://images.unsplash.com/..."
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        />
-                        <div className="flex items-center gap-3">
+                  {/* UPLOAD CARDS DAS IMAGENS DA ABA SOBRE */}
+                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+                    <div className="border-b border-slate-800 pb-2 flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                          <Upload className="w-4 h-4 text-amber-400" />
+                          <span>Imagem de Destaque do Cabeçalho da Aba Sobre</span>
+                        </label>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Imagem exibida no topo da página &quot;Sobre&quot; em destaque.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                      {/* Live Preview Card */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Pré-visualização do Banner</span>
+                        <div className="relative rounded-xl overflow-hidden shadow-lg border border-amber-500/30 bg-slate-900 group">
+                          <img
+                            src={aboutForm.heroImage || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"}
+                            alt="Hero About Preview"
+                            className="w-full h-44 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-3">
+                            <div className="text-white text-xs font-serif font-bold truncate">
+                              {aboutForm.heroTitle || 'Sobre a MR Engenharia'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Drop Zone & Buttons */}
+                      <div className="space-y-3">
+                        <div
+                          onDragOver={(e) => { e.preventDefault(); setIsAboutHeroDragOver(true); }}
+                          onDragLeave={() => setIsAboutHeroDragOver(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsAboutHeroDragOver(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) processAboutHeroFile(file);
+                          }}
+                          className={`p-4 rounded-xl border-2 border-dashed transition-all text-center space-y-2 ${
+                            isAboutHeroDragOver
+                              ? 'border-amber-400 bg-amber-500/10'
+                              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                          }`}
+                        >
                           <input
                             type="file"
                             ref={aboutHeroFileInputRef}
@@ -1550,15 +1855,60 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             accept="image/*"
                             className="hidden"
                           />
-                          <button
-                            type="button"
-                            onClick={() => aboutHeroFileInputRef.current?.click()}
-                            disabled={isUploadingAboutHeroImage}
-                            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors border border-slate-700"
-                          >
-                            <Upload className="w-3.5 h-3.5" />
-                            <span>{isUploadingAboutHeroImage ? 'Carregando...' : 'Fazer Upload de Foto'}</span>
-                          </button>
+
+                          <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                            <FileUp className="w-5 h-5" />
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-bold text-white">
+                              Arraste e solte uma imagem aqui
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              ou clique para selecionar um arquivo
+                            </p>
+                          </div>
+
+                          <div className="pt-1 flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => aboutHeroFileInputRef.current?.click()}
+                              disabled={isUploadingAboutHeroImage}
+                              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingAboutHeroImage ? 'Processando...' : 'Fazer Upload'}</span>
+                            </button>
+
+                            {aboutForm.heroImage && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...aboutForm, heroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80' };
+                                  setAboutForm(updated);
+                                  updateAboutInfo(updated);
+                                  triggerToast('Imagem padrão do cabeçalho restaurada!');
+                                }}
+                                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                                title="Restaurar Imagem Padrão"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                            Ou informe a URL da Imagem:
+                          </label>
+                          <input
+                            type="text"
+                            value={aboutForm.heroImage || ''}
+                            onChange={(e) => setAboutForm({ ...aboutForm, heroImage: e.target.value })}
+                            placeholder="https://images.unsplash.com/..."
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                          />
                         </div>
                       </div>
                     </div>
@@ -1601,59 +1951,133 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Foto Institucional do Escritório / Equipe
-                      </label>
-                      <div className="flex items-center gap-3 mb-2">
-                        {aboutForm.officeImage && (
-                          <img
-                            src={aboutForm.officeImage}
-                            alt="Office Preview"
-                            className="w-20 h-16 object-cover rounded-xl border border-slate-700 bg-slate-950 shrink-0"
-                          />
-                        )}
-                        <input
-                          type="text"
-                          value={aboutForm.officeImage}
-                          onChange={(e) => setAboutForm({ ...aboutForm, officeImage: e.target.value })}
-                          placeholder="URL da foto..."
-                          className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                        />
+                  {/* UPLOAD DA FOTO DO ESCRITÓRIO / EQUIPE */}
+                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+                    <div className="border-b border-slate-800 pb-2 flex items-center justify-between">
+                      <div>
+                        <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                          <Upload className="w-4 h-4 text-amber-400" />
+                          <span>Foto Institucional do Escritório / Equipe (Página Sobre)</span>
+                        </label>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Exibida ao lado do texto da história institucional no bloco Quem Somos.
+                        </p>
                       </div>
-                      <input
-                        type="file"
-                        ref={aboutOfficeFileInputRef}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) processAboutOfficeFile(file);
-                        }}
-                        accept="image/*"
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => aboutOfficeFileInputRef.current?.click()}
-                        disabled={isUploadingAboutOfficeImage}
-                        className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors border border-slate-700"
-                      >
-                        <Upload className="w-3.5 h-3.5" />
-                        <span>{isUploadingAboutOfficeImage ? 'Carregando...' : 'Upload da Foto do Escritório'}</span>
-                      </button>
                     </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1">
-                        Legenda de Localização na Foto *
-                      </label>
-                      <input
-                        type="text"
-                        value={aboutForm.officeLocation}
-                        onChange={(e) => setAboutForm({ ...aboutForm, officeLocation: e.target.value })}
-                        placeholder="Ex: Parnaíba - PI"
-                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                      {/* Live Preview Card */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase block">Pré-visualização na Seção</span>
+                        <div className="relative rounded-xl overflow-hidden shadow-lg border border-slate-700 bg-slate-900 group">
+                          <img
+                            src={aboutForm.officeImage || "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80"}
+                            alt="Office About Preview"
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-3">
+                            <div className="text-white text-xs font-bold">
+                              <span className="block text-amber-400 text-[10px] uppercase font-mono">{aboutForm.officeLocation || 'Parnaíba - PI'}</span>
+                              <span>MR Engenharia</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Drop Zone & Controls */}
+                      <div className="space-y-3">
+                        <div
+                          onDragOver={(e) => { e.preventDefault(); setIsAboutOfficeDragOver(true); }}
+                          onDragLeave={() => setIsAboutOfficeDragOver(false)}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            setIsAboutOfficeDragOver(false);
+                            const file = e.dataTransfer.files?.[0];
+                            if (file) processAboutOfficeFile(file);
+                          }}
+                          className={`p-4 rounded-xl border-2 border-dashed transition-all text-center space-y-2 ${
+                            isAboutOfficeDragOver
+                              ? 'border-amber-400 bg-amber-500/10'
+                              : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="file"
+                            ref={aboutOfficeFileInputRef}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) processAboutOfficeFile(file);
+                            }}
+                            accept="image/*"
+                            className="hidden"
+                          />
+
+                          <div className="w-10 h-10 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                            <FileUp className="w-5 h-5" />
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-bold text-white">
+                              Arraste e solte uma imagem aqui
+                            </p>
+                            <p className="text-[10px] text-slate-400 mt-0.5">
+                              ou clique para escolher um arquivo do seu dispositivo
+                            </p>
+                          </div>
+
+                          <div className="pt-1 flex justify-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => aboutOfficeFileInputRef.current?.click()}
+                              disabled={isUploadingAboutOfficeImage}
+                              className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingAboutOfficeImage ? 'Processando...' : 'Fazer Upload'}</span>
+                            </button>
+
+                            {aboutForm.officeImage && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...aboutForm, officeImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80' };
+                                  setAboutForm(updated);
+                                  updateAboutInfo(updated);
+                                  triggerToast('Imagem do escritório restaurada para a padrão!');
+                                }}
+                                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
+                                title="Restaurar Imagem Padrão"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                            Legenda de Localização na Foto *
+                          </label>
+                          <input
+                            type="text"
+                            value={aboutForm.officeLocation || ''}
+                            onChange={(e) => setAboutForm({ ...aboutForm, officeLocation: e.target.value })}
+                            placeholder="Ex: Parnaíba - PI"
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none mb-2"
+                          />
+
+                          <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                            Ou informe a URL da Imagem do Escritório:
+                          </label>
+                          <input
+                            type="text"
+                            value={aboutForm.officeImage || ''}
+                            onChange={(e) => setAboutForm({ ...aboutForm, officeImage: e.target.value })}
+                            placeholder="https://images.unsplash.com/..."
+                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -3576,6 +4000,92 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     <option value="Flame">Flame (PPCI)</option>
                     <option value="Box">Box (BIM 3D)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* UPLOAD DA IMAGEM DO CARD DO SERVIÇO */}
+              <div className="space-y-3 p-4 bg-slate-950 rounded-xl border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                    <Upload className="w-4 h-4 text-amber-400" />
+                    <span>Imagem Ilustrativa do Card do Serviço</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    Upload por arquivo ou link URL
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+                  {/* Pré-visualização da imagem do card */}
+                  <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-slate-900 aspect-video group">
+                    <img
+                      src={serviceForm.imageUrl || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80'}
+                      alt="Service Card Preview"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/40 flex items-end p-2.5">
+                      <span className="text-[10px] font-bold text-amber-300 font-mono bg-slate-950/80 px-2 py-0.5 rounded border border-amber-500/30">
+                        {serviceForm.title || 'Novo Serviço'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Drop Zone e Controles de Upload */}
+                  <div className="space-y-2">
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsServiceImageDragOver(true); }}
+                      onDragLeave={() => setIsServiceImageDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsServiceImageDragOver(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) processServiceImageFile(file);
+                      }}
+                      className={`p-3 rounded-xl border-2 border-dashed transition-all text-center space-y-1 cursor-pointer ${
+                        isServiceImageDragOver
+                          ? 'border-amber-400 bg-amber-500/10'
+                          : 'border-slate-800 bg-slate-900 hover:border-slate-700'
+                      }`}
+                      onClick={() => serviceImageFileInputRef.current?.click()}
+                    >
+                      <input
+                        type="file"
+                        ref={serviceImageFileInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) processServiceImageFile(file);
+                        }}
+                        accept="image/*"
+                        className="hidden"
+                      />
+
+                      <FileUp className="w-5 h-5 text-amber-400 mx-auto" />
+                      <p className="text-xs font-bold text-white">
+                        {isUploadingServiceImage ? 'Processando...' : 'Clique ou arraste uma imagem aqui'}
+                      </p>
+                      <p className="text-[10px] text-slate-400">JPG, PNG, WEBP</p>
+                    </div>
+
+                    <div className="flex gap-1.5">
+                      <input
+                        type="url"
+                        value={serviceForm.imageUrl}
+                        onChange={(e) => setServiceForm({ ...serviceForm, imageUrl: e.target.value })}
+                        placeholder="Ou informe a URL da foto (http://...)"
+                        className="flex-1 px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                      />
+                      {serviceForm.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setServiceForm({ ...serviceForm, imageUrl: '' })}
+                          className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold rounded-lg"
+                          title="Remover Imagem Customizada"
+                        >
+                          Limpar
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

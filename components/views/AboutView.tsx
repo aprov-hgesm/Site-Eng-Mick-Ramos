@@ -51,11 +51,11 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
 
             {aboutInfo.heroImage && (
               <div className="lg:col-span-4 hidden lg:block">
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group">
                   <img
                     src={aboutInfo.heroImage}
                     alt={siteInfo.brandName}
-                    className="rounded-xl h-40 w-full object-cover"
+                    className="rounded-xl h-40 w-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
                 </div>
               </div>
@@ -87,13 +87,13 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
           </div>
 
           <div className="lg:col-span-5">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200">
+            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-slate-200 group">
               <img
                 src={aboutInfo.officeImage}
                 alt={siteInfo.brandName}
-                className="w-full h-80 sm:h-96 object-cover"
+                className="w-full h-80 sm:h-96 object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent flex items-end p-6">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent flex items-end p-6 pointer-events-none">
                 <div className="text-white">
                   <span className="font-serif font-bold text-lg block">{siteInfo.brandName}</span>
                   <span className="text-xs text-amber-300">{aboutInfo.officeLocation || siteInfo.cityRegion}</span>

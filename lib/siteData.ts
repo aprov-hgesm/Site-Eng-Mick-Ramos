@@ -18,6 +18,8 @@ export interface Service {
   shortDesc: string;
   fullDesc: string;
   iconName: string;
+  image?: string;
+  imageUrl?: string;
   benefits: string[];
   deliverables: string[];
 }
@@ -136,6 +138,7 @@ export interface SiteContactInfo {
   heroImageTag?: string;
   heroImageTitle?: string;
   homeAboutImageUrl?: string;
+  servicesHeroImage?: string;
 }
 
 export const DEFAULT_SITE_INFO: SiteContactInfo = {
@@ -156,6 +159,7 @@ export const DEFAULT_SITE_INFO: SiteContactInfo = {
   heroImageTag: 'Parnaíba • Litoral Piauiense',
   heroImageTitle: 'Residência Unifamiliar de Alto Padrão',
   homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
+  servicesHeroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
   stats: [
     { label: 'Clientes atendidos', value: '+150', icon: 'Users' },
     { label: 'Projetos desenvolvidos', value: '+250', icon: 'FolderCheck' },

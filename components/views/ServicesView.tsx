@@ -30,8 +30,10 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
     }
   };
 
-  const getServiceImage = (id: string) => {
-    switch (id) {
+  const getServiceImage = (s: Service) => {
+    if (s.imageUrl) return s.imageUrl;
+    if (s.image) return s.image;
+    switch (s.id) {
       case 'vistorias': return 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80';
       case 'laudos': return 'https://images.unsplash.com/photo-1590069261209-f8e9b8642343?auto=format&fit=crop&w=600&q=80';
       case 'regularizacao': return 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80';
@@ -68,11 +70,11 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
             </div>
 
             <div className="lg:col-span-4 hidden lg:block">
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
+              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group">
                 <img
-                  src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"
-                  alt="Engenheiro Mick Ramos - Vistoria"
-                  className="rounded-xl h-44 w-full object-cover"
+                  src={siteInfo.servicesHeroImage || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"}
+                  alt="Engenharia Civil - Serviços"
+                  className="rounded-xl h-44 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
               </div>
             </div>
@@ -104,7 +106,7 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
               <div>
                 <div className="relative h-40 overflow-hidden bg-slate-100">
                   <img
-                    src={getServiceImage(s.id)}
+                    src={getServiceImage(s)}
                     alt={s.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
