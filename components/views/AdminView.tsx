@@ -12,7 +12,14 @@ import {
 import { useSiteData } from '@/lib/SiteContext';
 import { Project, BlogPost, Service, BLOG_CATEGORIES, SiteContactInfo, AboutInfo, AboutValue } from '@/lib/siteData';
 import { MRLogo } from '../MRLogo';
-import { db } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import {
+  browserSessionPersistence,
+  onAuthStateChanged,
+  setPersistence,
+  signInWithEmailAndPassword,
+  signOut
+} from 'firebase/auth';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
 // Helper to compress uploaded images to lightweight Base64 (preserves PNG/WebP transparency)
@@ -95,37 +102,46 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     resetToDefaultData
   } = useSiteData();
 
-  // SHA-256 Hash of "Antonia1#"
-  const SECURE_PASSWORD_HASH = 'e218440d0b94b384218f7b6face3f8f051251c787e91ce378b1b59dc0e478145';
+  // Admin UID for Firebase Authentication authorization
+  const ADMIN_UID = 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const savedAuth = sessionStorage.getItem('mr_admin_auth');
-      return savedAuth === `true_${SECURE_PASSWORD_HASH}`;
-    }
-    return false;
-  });
+  const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutTimeLeft, setLockoutTimeLeft] = useState(0);
 
   useEffect(() => {
-    if (lockoutTimeLeft <= 0) return;
-    const interval = setInterval(() => {
-      setLockoutTimeLeft((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          setAuthError('');
-          return 0;
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (user) => {
+        try {
+          if (user && user.uid === ADMIN_UID) {
+            setIsAuthenticated(true);
+          } else {
+            setIsAuthenticated(false);
+            if (user) {
+              await signOut(auth);
+            }
+          }
+        } catch (err: unknown) {
+          console.error('Erro ao verificar sessão administrativa:', err);
+          setIsAuthenticated(false);
+        } finally {
+          setIsAuthLoading(false);
         }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [lockoutTimeLeft]);
+      },
+      (error: unknown) => {
+        console.error('Erro no observador de autenticação:', error);
+        setIsAuthenticated(false);
+        setIsAuthLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   const [adminTab, setAdminTab] = useState<'dashboard' | 'about' | 'projects' | 'services' | 'blog' | 'contact' | 'inbox' | 'home'>('dashboard');
 
@@ -563,62 +579,44 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setConfirmModal({ ...confirmModal, isOpen: false });
   };
 
-  const hashPassword = async (pwd: string): Promise<string> => {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(pwd);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (lockoutTimeLeft > 0 || isVerifying) return;
+    if (isVerifying) return;
 
-    if (!passwordInput.trim()) {
-      setAuthError('Por favor, informe a senha de acesso.');
+    if (!emailInput.trim() || !passwordInput.trim()) {
+      setAuthError('Por favor, informe e-mail e senha de acesso.');
       return;
     }
 
     setIsVerifying(true);
     setAuthError('');
 
-    // Artificial delay to prevent timing analysis attack
-    await new Promise((resolve) => setTimeout(resolve, 350));
-
     try {
-      const computedHash = await hashPassword(passwordInput);
-      if (computedHash === SECURE_PASSWORD_HASH) {
+      await setPersistence(auth, browserSessionPersistence);
+      const credential = await signInWithEmailAndPassword(auth, emailInput.trim(), passwordInput);
+      if (credential.user.uid === ADMIN_UID) {
         setIsAuthenticated(true);
-        setFailedAttempts(0);
         setPasswordInput('');
-        if (typeof window !== 'undefined') {
-          sessionStorage.setItem('mr_admin_auth', `true_${SECURE_PASSWORD_HASH}`);
-        }
       } else {
-        const nextAttempts = failedAttempts + 1;
-        setFailedAttempts(nextAttempts);
-        setPasswordInput('');
-        if (nextAttempts >= 5) {
-          setLockoutTimeLeft(60);
-          setAuthError('Proteção Anti-Ataque Ativada: Excesso de tentativas incorretas. Aguarde 60 segundos.');
-        } else {
-          setAuthError(`Senha incorreta. Tentativa ${nextAttempts} de 5.`);
-        }
+        await signOut(auth);
+        setIsAuthenticated(false);
+        setAuthError('Usuário não autorizado.');
       }
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
-      setAuthError('Erro ao verificar criptografia.');
+      setAuthError('Não foi possível autenticar. Verifique as credenciais.');
     } finally {
       setIsVerifying(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('mr_admin_auth');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err: unknown) {
+      console.error(err);
     }
+    setIsAuthenticated(false);
   };
 
   // Multiple project images upload processor
@@ -895,6 +893,27 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsBlogModalOpen(false);
   };
 
+  // LOADING SCREEN (Checking persistent session)
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center bg-slate-900 py-16 px-4">
+        <div className="w-full max-w-md bg-slate-950 border border-amber-500/30 rounded-2xl p-8 shadow-2xl space-y-6 text-center">
+          <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto shadow-inner animate-pulse">
+            <ShieldCheck className="w-8 h-8 text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-serif font-bold text-white">
+              Painel Administrativo Restrito
+            </h1>
+            <p className="text-xs text-slate-400 mt-2">
+              Verificando sessão segura...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // LOGIN SCREEN
   if (!isAuthenticated) {
     return (
@@ -916,50 +935,63 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
 
           <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-800 text-[11px] text-slate-300 flex items-center justify-center gap-2">
             <ShieldAlert className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-            <span>Acesso protegido com criptografia SHA-256 e proteção anti-ataque.</span>
+            <span>Acesso protegido pelo Firebase Authentication.</span>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="relative">
+          <form onSubmit={handleLogin} className="space-y-4 text-left">
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">E-mail administrativo</label>
               <input
-                type={showPassword ? 'text' : 'password'}
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Informe a senha do painel..."
-                disabled={lockoutTimeLeft > 0 || isVerifying}
-                className="w-full pl-4 pr-11 py-3.5 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-center text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                type="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="seu.email@exemplo.com"
+                disabled={isVerifying}
+                autoComplete="username"
+                required
+                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
                 autoFocus
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                tabIndex={-1}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 transition-colors p-1"
-                title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
-              >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs text-slate-400 mb-1.5 font-medium">Senha de acesso</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••••••"
+                  disabled={isVerifying}
+                  autoComplete="current-password"
+                  required
+                  className="w-full pl-4 pr-11 py-3 bg-slate-900 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-amber-400 transition-colors p-1"
+                  title={showPassword ? 'Ocultar senha' : 'Exibir senha'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             {authError && (
-              <div className="p-3 bg-red-950/60 border border-red-500/40 rounded-xl text-xs text-red-300 font-medium">
+              <div className="p-3 bg-red-950/60 border border-red-500/40 rounded-xl text-xs text-red-300 font-medium text-center">
                 {authError}
-              </div>
-            )}
-
-            {lockoutTimeLeft > 0 && (
-              <div className="p-3 bg-amber-950/60 border border-amber-500/40 rounded-xl text-xs text-amber-300 font-mono">
-                Aguarde <strong>{lockoutTimeLeft}s</strong> para tentar novamente.
               </div>
             )}
 
             <button
               type="submit"
-              disabled={lockoutTimeLeft > 0 || isVerifying}
+              disabled={isVerifying}
               className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isVerifying ? (
-                <span>VERIFICANDO CRIPTOGRAFIA...</span>
+                <span>ENTRANDO...</span>
               ) : (
                 <>
                   <Unlock className="w-4 h-4" />
@@ -969,7 +1001,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
             </button>
           </form>
 
-          <p className="text-[10px] text-slate-500 pt-2 border-t border-slate-800/80">
+          <p className="text-[10px] text-slate-500 pt-2 border-t border-slate-800/80 text-center">
             Acesso monitorado e exclusivo para Eng. Mick Ramos • CREA/PI
           </p>
 
