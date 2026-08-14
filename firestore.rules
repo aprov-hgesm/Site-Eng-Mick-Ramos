@@ -16,35 +16,40 @@ service cloud.firestore {
       return data[field] is string && data[field].size() <= maxLen;
     }
 
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+    }
+
     // 1. Negação total como regra padrão
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // 2. Coleções de conteúdo institucional: leitura pública, escrita bloqueada
+    // 2. Coleções de conteúdo institucional: leitura pública, escrita para administrador
     match /projects/{projectId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     match /blogPosts/{postId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     match /services/{serviceId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     match /siteConfig/{configId} {
       allow read: if true;
-      allow write: if false;
+      allow create, update, delete: if isAdmin();
     }
 
     // 3. Solicitações de Orçamento (quoteRequests): somente criação pública validada
     match /quoteRequests/{requestId} {
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
       allow create: if hasOnlyAllowedFields(request.resource.data, [
                       'name', 'phone', 'email', 'service', 'propertyType', 
                       'areaSize', 'location', 'details', 'targetEmail', 
@@ -70,7 +75,7 @@ service cloud.firestore {
 
     // 4. Mensagens de Contato (contactMessages): somente criação pública validada
     match /contactMessages/{messageId} {
-      allow read, update, delete: if false;
+      allow read, update, delete: if isAdmin();
       allow create: if hasOnlyAllowedFields(request.resource.data, [
                       'name', 'email', 'whatsapp', 'subject', 'message', 
                       'targetEmail', 'createdAt', 'status'
