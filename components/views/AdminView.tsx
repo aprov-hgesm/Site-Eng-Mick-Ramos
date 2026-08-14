@@ -19,7 +19,7 @@ import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 const compressImageFile = (
   file: File, 
   maxWidth = 1200, 
-  maxHeight = 900, 
+  maxHeight = 1200, 
   quality = 0.85,
   outputType?: string
 ): Promise<string> => {
@@ -29,9 +29,8 @@ const compressImageFile = (
       return;
     }
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Falha ao ler o arquivo de imagem selecionado.'));
+    reader.onerror = () => reject(new Error('Erro ao ler arquivo de imagem.'));
     reader.onload = (evt) => {
-      const canvas = document.createElement('canvas');
       const img = new Image();
       img.onerror = () => reject(new Error('Erro ao processar conteúdo da imagem.'));
       img.onload = () => {
@@ -48,6 +47,7 @@ const compressImageFile = (
           }
         }
 
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
