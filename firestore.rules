@@ -2,39 +2,92 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default deny catch-all
+
+    // Funções auxiliares para validação de integridade dos dados
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    function hasAllRequiredFields(data, requiredFields) {
+      return data.keys().hasAll(requiredFields);
+    }
+
+    function isValidString(data, field, maxLen) {
+      return data[field] is string && data[field].size() <= maxLen;
+    }
+
+    // 1. Negação total como regra padrão
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Projects collection
+    // 2. Coleções de conteúdo institucional: leitura pública, escrita bloqueada
     match /projects/{projectId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
 
-    // Blog posts collection
     match /blogPosts/{postId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
 
-    // Services collection
     match /services/{serviceId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
 
-    // Site configuration
     match /siteConfig/{configId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow write: if false;
     }
 
-    // Quote and contact requests
+    // 3. Solicitações de Orçamento (quoteRequests): somente criação pública validada
     match /quoteRequests/{requestId} {
-      allow read, write: if true;
+      allow read, update, delete: if false;
+      allow create: if hasOnlyAllowedFields(request.resource.data, [
+                      'name', 'phone', 'email', 'service', 'propertyType', 
+                      'areaSize', 'location', 'details', 'targetEmail', 
+                      'createdAt', 'status'
+                    ])
+                    && hasAllRequiredFields(request.resource.data, [
+                      'name', 'phone', 'email', 'service', 'propertyType', 
+                      'areaSize', 'location', 'details', 'targetEmail', 
+                      'createdAt', 'status'
+                    ])
+                    && isValidString(request.resource.data, 'name', 120)
+                    && isValidString(request.resource.data, 'phone', 30)
+                    && isValidString(request.resource.data, 'email', 254)
+                    && isValidString(request.resource.data, 'service', 150)
+                    && isValidString(request.resource.data, 'propertyType', 80)
+                    && isValidString(request.resource.data, 'areaSize', 30)
+                    && isValidString(request.resource.data, 'location', 150)
+                    && isValidString(request.resource.data, 'details', 3000)
+                    && isValidString(request.resource.data, 'targetEmail', 254)
+                    && isValidString(request.resource.data, 'createdAt', 40)
+                    && request.resource.data.status == 'nova';
     }
 
-    // Contact messages
+    // 4. Mensagens de Contato (contactMessages): somente criação pública validada
     match /contactMessages/{messageId} {
-      allow read, write: if true;
+      allow read, update, delete: if false;
+      allow create: if hasOnlyAllowedFields(request.resource.data, [
+                      'name', 'email', 'whatsapp', 'subject', 'message', 
+                      'targetEmail', 'createdAt', 'status'
+                    ])
+                    && hasAllRequiredFields(request.resource.data, [
+                      'name', 'email', 'whatsapp', 'subject', 'message', 
+                      'targetEmail', 'createdAt', 'status'
+                    ])
+                    && isValidString(request.resource.data, 'name', 120)
+                    && isValidString(request.resource.data, 'email', 254)
+                    && isValidString(request.resource.data, 'whatsapp', 30)
+                    && isValidString(request.resource.data, 'subject', 120)
+                    && isValidString(request.resource.data, 'message', 3000)
+                    && isValidString(request.resource.data, 'targetEmail', 254)
+                    && isValidString(request.resource.data, 'createdAt', 40)
+                    && request.resource.data.status == 'nova';
     }
   }
 }
+
