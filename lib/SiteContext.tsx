@@ -35,65 +35,6 @@ const ABOUT_INFO_STORAGE_KEY = 'mr_engenharia_about_info_v1';
 
 const cleanObj = (obj: any) => JSON.parse(JSON.stringify(obj));
 
-const compressDataUrlIfNeeded = async (dataUrl: string, maxChars = 450000): Promise<string> => {
-  if (typeof window === 'undefined' || !dataUrl || !dataUrl.startsWith('data:image/') || dataUrl.length <= maxChars) {
-    return dataUrl;
-  }
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      let width = img.width;
-      let height = img.height;
-      let quality = 0.8;
-      const canvas = document.createElement('canvas');
-
-      const attempt = () => {
-        width = Math.max(200, Math.round(width * 0.7));
-        height = Math.max(200, Math.round(height * 0.7));
-        quality = Math.max(0.2, quality - 0.15);
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          resolve(dataUrl);
-          return;
-        }
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
-        ctx.drawImage(img, 0, 0, width, height);
-        const result = canvas.toDataURL('image/jpeg', quality);
-        if (result.length <= maxChars || (width <= 200 && quality <= 0.2)) {
-          resolve(result);
-        } else {
-          attempt();
-        }
-      };
-      attempt();
-    };
-    img.onerror = () => resolve(dataUrl);
-    img.src = dataUrl;
-  });
-};
-
-const sanitizeDocObject = async <T extends Record<string, any>>(rawObj: T): Promise<T> => {
-  const obj = cleanObj(rawObj);
-  for (const key of Object.keys(obj)) {
-    const val = obj[key];
-    if (typeof val === 'string' && val.startsWith('data:image/') && val.length > 450000) {
-      obj[key] = await compressDataUrlIfNeeded(val, 450000);
-    } else if (Array.isArray(val)) {
-      obj[key] = await Promise.all(val.map(async (item: any) => {
-        if (typeof item === 'string' && item.startsWith('data:image/') && item.length > 450000) {
-          return await compressDataUrlIfNeeded(item, 450000);
-        }
-        return item;
-      }));
-    }
-  }
-  return obj;
-};
-
 export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(BLOG_POSTS);
@@ -240,8 +181,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newInfo = { ...siteInfo, ...updated };
     setSiteInfo(newInfo);
     try {
-      const sanitized = await sanitizeDocObject(newInfo);
-      await setDoc(doc(db, 'siteConfig', 'contact'), sanitized, { merge: true });
+      await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
     } catch (e) {
       console.error('Failed to update site info in Firestore:', e);
     }
@@ -251,8 +191,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newAbout = { ...aboutInfo, ...updated };
     setAboutInfo(newAbout);
     try {
-      const sanitized = await sanitizeDocObject(newAbout);
-      await setDoc(doc(db, 'siteConfig', 'about'), sanitized, { merge: true });
+      await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(newAbout), { merge: true });
     } catch (e) {
       console.error('Failed to update about info in Firestore:', e);
     }
@@ -262,8 +201,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newId = 'proj-' + Date.now();
     const newProject: Project = { ...projectData, id: newId };
     try {
-      const sanitized = await sanitizeDocObject(newProject);
-      await setDoc(doc(db, 'projects', newId), sanitized);
+      await setDoc(doc(db, 'projects', newId), cleanObj(newProject));
     } catch (e) {
       console.error('Failed to add project to Firestore:', e);
     }
@@ -273,8 +211,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existing = projects.find(p => p.id === id);
     const updated = existing ? { ...existing, ...updatedData } : updatedData;
     try {
-      const sanitized = await sanitizeDocObject(updated);
-      await setDoc(doc(db, 'projects', id), sanitized, { merge: true });
+      await setDoc(doc(db, 'projects', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update project in Firestore:', e);
     }
@@ -299,8 +236,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const newPost: BlogPost = { ...postData, id: newId, slug };
     try {
-      const sanitized = await sanitizeDocObject(newPost);
-      await setDoc(doc(db, 'blogPosts', newId), sanitized);
+      await setDoc(doc(db, 'blogPosts', newId), cleanObj(newPost));
     } catch (e) {
       console.error('Failed to add blog post to Firestore:', e);
     }
@@ -310,8 +246,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existing = blogPosts.find(p => p.id === id);
     const updated = existing ? { ...existing, ...updatedData } : updatedData;
     try {
-      const sanitized = await sanitizeDocObject(updated);
-      await setDoc(doc(db, 'blogPosts', id), sanitized, { merge: true });
+      await setDoc(doc(db, 'blogPosts', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update blog post in Firestore:', e);
     }
@@ -329,8 +264,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newId = 'serv-' + Date.now();
     const newService: Service = { ...serviceData, id: newId };
     try {
-      const sanitized = await sanitizeDocObject(newService);
-      await setDoc(doc(db, 'services', newId), sanitized);
+      await setDoc(doc(db, 'services', newId), cleanObj(newService));
     } catch (e) {
       console.error('Failed to add service to Firestore:', e);
     }
@@ -340,8 +274,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const existing = services.find(s => s.id === id);
     const updated = existing ? { ...existing, ...updatedData } : updatedData;
     try {
-      const sanitized = await sanitizeDocObject(updated);
-      await setDoc(doc(db, 'services', id), sanitized, { merge: true });
+      await setDoc(doc(db, 'services', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update service in Firestore:', e);
     }

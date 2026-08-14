@@ -15,14 +15,12 @@ import { MRLogo } from '../MRLogo';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
-// Helper to compress uploaded images to lightweight Base64 (guarantees size stays under Firestore limits)
-const MAX_BASE64_LENGTH = 450000; // ~337 KB binary data, safely under Firestore 1MB document limit
-
+// Helper to compress uploaded images to lightweight Base64 (preserves PNG/WebP transparency)
 const compressImageFile = (
   file: File, 
   maxWidth = 1200, 
-  maxHeight = 1200, 
-  quality = 0.8,
+  maxHeight = 900, 
+  quality = 0.85,
   outputType?: string
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -31,69 +29,39 @@ const compressImageFile = (
       return;
     }
     const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Erro ao ler arquivo de imagem.'));
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo de imagem selecionado.'));
     reader.onload = (evt) => {
+      const canvas = document.createElement('canvas');
       const img = new Image();
       img.onerror = () => reject(new Error('Erro ao processar conteúdo da imagem.'));
       img.onload = () => {
-        let curWidth = img.width;
-        let curHeight = img.height;
+        let width = img.width;
+        let height = img.height;
 
-        if (curWidth > maxWidth || curHeight > maxHeight) {
-          if (curWidth / curHeight > maxWidth / maxHeight) {
-            curHeight = Math.round((curHeight * maxWidth) / curWidth);
-            curWidth = maxWidth;
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
           } else {
-            curWidth = Math.round((curWidth * maxHeight) / curHeight);
-            curHeight = maxHeight;
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
           }
         }
 
-        const canvas = document.createElement('canvas');
-        canvas.width = curWidth;
-        canvas.height = curHeight;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          const raw = evt.target?.result as string;
-          if (raw.length > MAX_BASE64_LENGTH) {
-            reject(new Error('Imagem muito grande para armazenamento. Escolha uma imagem menor.'));
-          } else {
-            resolve(raw);
-          }
+          resolve(evt.target?.result as string);
           return;
         }
 
-        // Fill white background for transparent images converted to JPEG
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, curWidth, curHeight);
-        ctx.drawImage(img, 0, 0, curWidth, curHeight);
+        ctx.drawImage(img, 0, 0, width, height);
 
-        // Note: PNG toDataURL ignores quality parameter in browsers, so use JPEG or WebP for compression
-        const format = outputType || (file.type === 'image/webp' ? 'image/webp' : 'image/jpeg');
-        let currentQuality = quality;
-        let compressed = canvas.toDataURL(format, currentQuality);
-
-        // Iteratively downscale dimensions & quality if image string length > MAX_BASE64_LENGTH
-        let attempts = 0;
-        while (compressed.length > MAX_BASE64_LENGTH && attempts < 10) {
-          attempts++;
-          curWidth = Math.max(250, Math.round(curWidth * 0.75));
-          curHeight = Math.max(250, Math.round(curHeight * 0.75));
-          currentQuality = Math.max(0.2, currentQuality - 0.12);
-
-          canvas.width = curWidth;
-          canvas.height = curHeight;
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(0, 0, curWidth, curHeight);
-          ctx.drawImage(img, 0, 0, curWidth, curHeight);
-          compressed = canvas.toDataURL('image/jpeg', currentQuality);
-        }
-
-        if (compressed.length > 800000) {
-          reject(new Error('A imagem é muito pesada. Por favor, selecione um arquivo menor ou em formato JPG.'));
-          return;
-        }
-
+        // Keep PNG or WebP format for transparent images/logos
+        const isTransparent = file.type === 'image/png' || file.type === 'image/webp';
+        const format = outputType || (isTransparent ? file.type : 'image/jpeg');
+        const compressed = canvas.toDataURL(format, quality);
         resolve(compressed);
       };
       img.src = evt.target?.result as string;
