@@ -65,8 +65,8 @@ export const ContactView: React.FC = () => {
     setLoading(true);
     setErrorMessage(null);
 
-    // 1. Save directly to Firestore database so message is never lost
     try {
+      // 1. Save directly to Firestore database
       await addDoc(collection(db, 'contactMessages'), {
         name,
         email,
@@ -77,34 +77,42 @@ export const ContactView: React.FC = () => {
         createdAt: new Date().toISOString(),
         status: 'nova',
       });
-    } catch (dbErr) {
-      console.error('Erro ao registrar no Firestore:', dbErr);
-    }
 
-    // 2. Try sending via EmailJS
-    try {
-      await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          service_id: 'service_xud0pne',
-          template_id: 'template_77p928m',
-          user_id: 'tf-Z6BFUcuXuEt4BQ',
-          template_params: {
-            nome: name,
-            email: email,
-            whatsapp: whatsapp,
-            assunto: subject,
-            mensagem: message,
-          },
-        }),
-      });
-    } catch (error) {
-      console.warn('Erro ao tentar envio direto via EmailJS:', error);
-    } finally {
+      // 2. Set submitted to true only after Firestore success
       setSubmitted(true);
+
+      // 3. Try sending via EmailJS
+      try {
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            service_id: 'service_xud0pne',
+            template_id: 'template_77p928m',
+            user_id: 'tf-Z6BFUcuXuEt4BQ',
+            template_params: {
+              nome: name,
+              email: email,
+              whatsapp: whatsapp,
+              assunto: subject,
+              mensagem: message,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          console.warn('Falha no envio via EmailJS. Mensagem já gravada no Firestore.');
+        }
+      } catch (emailError: unknown) {
+        console.warn('Erro ao tentar envio direto via EmailJS:', emailError);
+      }
+    } catch (dbErr: unknown) {
+      console.error('Erro ao registrar no Firestore:', dbErr);
+      setSubmitted(false);
+      setErrorMessage('Não foi possível enviar sua mensagem. Verifique sua conexão e tente novamente.');
+    } finally {
       setLoading(false);
     }
   };
@@ -195,7 +203,7 @@ export const ContactView: React.FC = () => {
                   Mensagem Enviada com Sucesso!
                 </h3>
                 <p className="text-xs text-slate-600 max-w-md mx-auto">
-                  Obrigado, <strong className="text-slate-900">{name}</strong>. Sua mensagem foi formatada e direcionada para <strong>{targetEmail}</strong>.
+                  Obrigado, <strong className="text-slate-900">{name}</strong>. Sua mensagem foi recebida e registrada com sucesso.
                 </p>
 
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-left space-y-2 max-w-lg mx-auto text-xs text-slate-700">
