@@ -258,6 +258,7 @@ export const ContactView: React.FC = () => {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
+                      maxLength={120}
                       placeholder="Seu nome"
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                       required
@@ -272,6 +273,7 @@ export const ContactView: React.FC = () => {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      maxLength={254}
                       placeholder="seuemail@exemplo.com"
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                       required
@@ -288,6 +290,7 @@ export const ContactView: React.FC = () => {
                       type="tel"
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
+                      maxLength={30}
                       placeholder="(86) 99927-0261"
                       className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                       required
@@ -321,6 +324,7 @@ export const ContactView: React.FC = () => {
                     rows={4}
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
+                    maxLength={3000}
                     placeholder="Descreva sua necessidade ou projeto..."
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-white text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required

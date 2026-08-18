@@ -28,6 +28,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
   const [details, setDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -70,6 +72,8 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+    setErrorMessage(null);
     try {
       await addDoc(collection(db, 'quoteRequests'), {
         name,
@@ -84,10 +88,14 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
         createdAt: new Date().toISOString(),
         status: 'nova',
       });
-    } catch (err) {
+      setSubmitted(true);
+    } catch (err: unknown) {
       console.error('Erro ao salvar orçamento no Firestore:', err);
+      setSubmitted(false);
+      setErrorMessage('Não foi possível enviar sua solicitação. Verifique sua conexão e tente novamente.');
+    } finally {
+      setLoading(false);
     }
-    setSubmitted(true);
   };
 
   const handleSendWhatsApp = () => {
@@ -251,7 +259,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   <input
                     type="number"
                     value={areaSize}
-                    onChange={(e) => setAreaSize(e.target.value)}
+                    onChange={(e) => setAreaSize(e.target.value.slice(0, 30))}
                     placeholder="Ex: 150"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
@@ -265,6 +273,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
+                    maxLength={150}
                     placeholder="Ex: Parnaíba - PI"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
@@ -283,6 +292,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    maxLength={120}
                     placeholder="Digite seu nome"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
@@ -297,6 +307,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    maxLength={30}
                     placeholder="(86) 99999-9999"
                     className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
@@ -312,6 +323,7 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  maxLength={254}
                   placeholder="seuemail@exemplo.com"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
@@ -325,10 +337,24 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
                   rows={3}
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
+                  maxLength={3000}
                   placeholder="Descreva brevemente o que precisa (ex: preciso regularizar minha casa, fazer vistoria de laudo de infiltração, etc.)"
                   className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 bg-slate-50 text-slate-900 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 />
               </div>
+
+              {errorMessage && (
+                <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center justify-between gap-2">
+                  <span>{errorMessage}</span>
+                  <button
+                    type="button"
+                    onClick={() => setErrorMessage(null)}
+                    className="text-red-700 font-bold hover:text-red-900 px-1"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
 
               <div className="pt-2 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -338,9 +364,10 @@ export const QuoteModal: React.FC<QuoteModalProps> = ({
 
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-xl shadow-md transition-all"
+                  disabled={loading}
+                  className="px-6 py-3 bg-amber-500 hover:bg-amber-600 disabled:opacity-75 text-slate-950 font-bold text-xs uppercase tracking-widest rounded-xl shadow-md transition-all cursor-pointer disabled:cursor-not-allowed"
                 >
-                  SOLICITAR PROPOSTA
+                  {loading ? 'ENVIANDO...' : 'SOLICITAR PROPOSTA'}
                 </button>
               </div>
 
