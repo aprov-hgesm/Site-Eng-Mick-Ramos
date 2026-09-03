@@ -550,7 +550,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
   // Delete & Action Confirmation Modal State
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
-    type: 'delete_project' | 'delete_blog' | 'delete_service' | 'reset_defaults';
+    type: 'delete_project' | 'delete_blog' | 'delete_service' | 'reset_defaults' | 'delete_quote' | 'delete_message';
     id?: string;
     title?: string;
   }>({ isOpen: false, type: 'delete_project' });
@@ -562,21 +562,33 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleConfirmAction = () => {
-    if (confirmModal.type === 'delete_project' && confirmModal.id) {
-      deleteProject(confirmModal.id);
-      triggerToast(`Projeto "${confirmModal.title || ''}" excluído com sucesso!`);
-    } else if (confirmModal.type === 'delete_blog' && confirmModal.id) {
-      deleteBlogPost(confirmModal.id);
-      triggerToast(`Artigo "${confirmModal.title || ''}" excluído com sucesso!`);
-    } else if (confirmModal.type === 'delete_service' && confirmModal.id) {
-      deleteService(confirmModal.id);
-      triggerToast(`Serviço "${confirmModal.title || ''}" excluído com sucesso!`);
-    } else if (confirmModal.type === 'reset_defaults') {
-      resetToDefaultData();
-      triggerToast('Dados originais do site restaurados com sucesso!');
+  const handleConfirmAction = async () => {
+    try {
+      if (confirmModal.type === 'delete_project' && confirmModal.id) {
+        await deleteProject(confirmModal.id);
+        triggerToast(`Projeto "${confirmModal.title || ''}" excluído com sucesso!`);
+      } else if (confirmModal.type === 'delete_blog' && confirmModal.id) {
+        await deleteBlogPost(confirmModal.id);
+        triggerToast(`Artigo "${confirmModal.title || ''}" excluído com sucesso!`);
+      } else if (confirmModal.type === 'delete_service' && confirmModal.id) {
+        await deleteService(confirmModal.id);
+        triggerToast(`Serviço "${confirmModal.title || ''}" excluído com sucesso!`);
+      } else if (confirmModal.type === 'reset_defaults') {
+        await resetToDefaultData();
+        triggerToast('Dados originais do site restaurados com sucesso!');
+      } else if (confirmModal.type === 'delete_quote' && confirmModal.id) {
+        await deleteDoc(doc(db, 'quoteRequests', confirmModal.id));
+        triggerToast('Solicitação de orçamento excluída com sucesso!');
+      } else if (confirmModal.type === 'delete_message' && confirmModal.id) {
+        await deleteDoc(doc(db, 'contactMessages', confirmModal.id));
+        triggerToast('Mensagem de contato excluída com sucesso!');
+      }
+    } catch (err: any) {
+      console.error('Erro na ação do painel administrativo:', err);
+      triggerToast('Erro ao processar a solicitação. Verifique sua conexão e tente novamente.');
+    } finally {
+      setConfirmModal({ ...confirmModal, isOpen: false });
     }
-    setConfirmModal({ ...confirmModal, isOpen: false });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -1384,7 +1396,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {projects.map((p) => (
+                    {projects.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                          Nenhum projeto cadastrado no site. Clique no botão &quot;ADICIONAR PROJETO&quot; para incluir um novo.
+                        </td>
+                      </tr>
+                    ) : (
+                      projects.map((p) => (
                       <tr key={p.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4">
                           <img
@@ -1430,7 +1449,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -1609,7 +1628,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800">
-                      {services.map((s) => {
+                      {services.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="p-8 text-center text-slate-400">
+                            Nenhum serviço cadastrado no site. Clique no botão &quot;CADASTRAR NOVO SERVIÇO&quot; para incluir um novo.
+                          </td>
+                        </tr>
+                      ) : (
+                        services.map((s) => {
                         const img = s.imageUrl || s.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80';
                         return (
                           <tr key={s.id} className="hover:bg-slate-800/50 transition-colors">
@@ -1661,7 +1687,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             </td>
                           </tr>
                         );
-                      })}
+                      }))}
                     </tbody>
                   </table>
                 </div>
@@ -1708,7 +1734,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {blogPosts.map((post) => (
+                    {blogPosts.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="p-8 text-center text-slate-400">
+                          Nenhum artigo publicado no blog. Clique no botão &quot;NOVO ARTIGO NO BLOG&quot; para publicar um novo artigo.
+                        </td>
+                      </tr>
+                    ) : (
+                      blogPosts.map((post) => (
                       <tr key={post.id} className="hover:bg-slate-800/50 transition-colors">
                         <td className="p-4">
                           <img
@@ -1754,7 +1787,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>
@@ -3082,11 +3115,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                         </div>
 
                         <button
-                          onClick={async () => {
-                            if (confirm('Deseja excluir esta solicitação de orçamento?')) {
-                              await deleteDoc(doc(db, 'quoteRequests', q.id));
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'delete_quote',
+                            id: q.id,
+                            title: `Orçamento de ${q.name}`
+                          })}
                           className="p-2 text-slate-500 hover:text-red-400 transition-colors"
                           title="Excluir da Lista"
                         >
@@ -3159,11 +3193,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                         </div>
 
                         <button
-                          onClick={async () => {
-                            if (confirm('Deseja excluir esta mensagem?')) {
-                              await deleteDoc(doc(db, 'contactMessages', m.id));
-                            }
-                          }}
+                          onClick={() => setConfirmModal({
+                            isOpen: true,
+                            type: 'delete_message',
+                            id: m.id,
+                            title: `Mensagem de ${m.name}`
+                          })}
                           className="p-2 text-slate-500 hover:text-red-400 transition-colors"
                           title="Excluir da Lista"
                         >

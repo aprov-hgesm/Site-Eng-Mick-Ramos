@@ -97,49 +97,57 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
         </div>
 
         {/* 8 Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {services.map((s) => (
-            <div
-              key={s.id}
-              className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative h-40 overflow-hidden bg-slate-100">
-                  <img
-                    src={getServiceImage(s)}
-                    alt={s.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/0 transition-colors" />
-                </div>
-
-                <div className="p-6 space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center -mt-10 relative z-10 bg-white shadow-md">
-                    {getServiceIcon(s.iconName)}
+        {services.length === 0 ? (
+          <div className="py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-8 space-y-2">
+            <Compass className="w-8 h-8 text-slate-400 mx-auto" />
+            <h3 className="text-base font-bold text-slate-700">Nenhum serviço cadastrado</h3>
+            <p className="text-xs text-slate-500">Em breve novos serviços serão adicionados ao site.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {services.map((s) => (
+              <div
+                key={s.id}
+                className="group bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative h-40 overflow-hidden bg-slate-100">
+                    <img
+                      src={getServiceImage(s)}
+                      alt={s.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/0 transition-colors" />
                   </div>
 
-                  <h3 className="font-serif font-bold text-slate-900 text-sm uppercase tracking-wide group-hover:text-amber-600 transition-colors">
-                    {s.title}
-                  </h3>
+                  <div className="p-6 space-y-3">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center -mt-10 relative z-10 bg-white shadow-md">
+                      {getServiceIcon(s.iconName)}
+                    </div>
 
-                  <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
-                    {s.shortDesc}
-                  </p>
+                    <h3 className="font-serif font-bold text-slate-900 text-sm uppercase tracking-wide group-hover:text-amber-600 transition-colors">
+                      {s.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
+                      {s.shortDesc}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-6 pb-6 pt-2">
+                  <button
+                    onClick={() => setSelectedService(s)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform"
+                  >
+                    <span>SAIBA MAIS</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
-
-              <div className="px-6 pb-6 pt-2">
-                <button
-                  onClick={() => setSelectedService(s)}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform"
-                >
-                  <span>SAIBA MAIS</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </section>
 

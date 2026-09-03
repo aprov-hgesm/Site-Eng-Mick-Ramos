@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Project, BlogPost, Service, SiteContactInfo, AboutInfo, PROJECTS, BLOG_POSTS, SERVICES, DEFAULT_SITE_INFO, DEFAULT_ABOUT_INFO } from './siteData';
 import { db } from './firebase';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
+import { collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
 
 interface SiteContextType {
   projects: Project[];
@@ -59,112 +59,61 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY);
-      if (savedProjects) {
+      if (savedProjects !== null) {
         const data = JSON.parse(savedProjects);
         queueMicrotask(() => setProjects(data));
       }
 
       const savedBlog = localStorage.getItem(BLOG_STORAGE_KEY);
-      if (savedBlog) {
+      if (savedBlog !== null) {
         const data = JSON.parse(savedBlog);
         queueMicrotask(() => setBlogPosts(data));
       }
 
       const savedServices = localStorage.getItem(SERVICES_STORAGE_KEY);
-      if (savedServices) {
+      if (savedServices !== null) {
         const data = JSON.parse(savedServices);
         queueMicrotask(() => setServices(data));
       }
     } catch (e) {}
 
     // 1. Site Info (contact details, logos, phone, wa, CREA)
-    const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), async (snapshot) => {
+    const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as SiteContactInfo;
         setSiteInfo(data);
         try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
-      } else {
-        try {
-          await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(DEFAULT_SITE_INFO));
-        } catch (err) {
-          console.error('Error seeding initial siteInfo to Firestore:', err);
-        }
       }
     }, (error) => console.error('Firestore siteInfo listener error:', error));
 
     // 2. About Info (hero title, image, history, values)
-    const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), async (snapshot) => {
+    const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as AboutInfo;
         setAboutInfo(data);
         try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
-      } else {
-        try {
-          await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(DEFAULT_ABOUT_INFO));
-        } catch (err) {
-          console.error('Error seeding initial aboutInfo to Firestore:', err);
-        }
       }
     }, (error) => console.error('Firestore aboutInfo listener error:', error));
 
     // 3. Projects collection
-    const unsubProjects = onSnapshot(collection(db, 'projects'), async (snapshot) => {
-      if (!snapshot.empty) {
-        const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
-        setProjects(loadedProjects);
-        try { localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(loadedProjects)); } catch (e) {}
-      } else {
-        try {
-          const batch = writeBatch(db);
-          PROJECTS.forEach((p) => {
-            const pRef = doc(db, 'projects', p.id);
-            batch.set(pRef, cleanObj(p));
-          });
-          await batch.commit();
-        } catch (err) {
-          console.error('Error seeding initial projects to Firestore:', err);
-        }
-      }
+    const unsubProjects = onSnapshot(collection(db, 'projects'), (snapshot) => {
+      const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
+      setProjects(loadedProjects);
+      try { localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(loadedProjects)); } catch (e) {}
     }, (error) => console.error('Firestore projects listener error:', error));
 
     // 4. Blog Posts collection
-    const unsubBlog = onSnapshot(collection(db, 'blogPosts'), async (snapshot) => {
-      if (!snapshot.empty) {
-        const loadedPosts = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as BlogPost));
-        setBlogPosts(loadedPosts);
-        try { localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(loadedPosts)); } catch (e) {}
-      } else {
-        try {
-          const batch = writeBatch(db);
-          BLOG_POSTS.forEach((post) => {
-            const postRef = doc(db, 'blogPosts', post.id);
-            batch.set(postRef, cleanObj(post));
-          });
-          await batch.commit();
-        } catch (err) {
-          console.error('Error seeding initial blog posts to Firestore:', err);
-        }
-      }
+    const unsubBlog = onSnapshot(collection(db, 'blogPosts'), (snapshot) => {
+      const loadedPosts = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as BlogPost));
+      setBlogPosts(loadedPosts);
+      try { localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(loadedPosts)); } catch (e) {}
     }, (error) => console.error('Firestore blogPosts listener error:', error));
 
     // 5. Services collection
-    const unsubServices = onSnapshot(collection(db, 'services'), async (snapshot) => {
-      if (!snapshot.empty) {
-        const loadedServices = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Service));
-        setServices(loadedServices);
-        try { localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(loadedServices)); } catch (e) {}
-      } else {
-        try {
-          const batch = writeBatch(db);
-          SERVICES.forEach((s) => {
-            const sRef = doc(db, 'services', s.id);
-            batch.set(sRef, cleanObj(s));
-          });
-          await batch.commit();
-        } catch (err) {
-          console.error('Error seeding initial services to Firestore:', err);
-        }
-      }
+    const unsubServices = onSnapshot(collection(db, 'services'), (snapshot) => {
+      const loadedServices = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Service));
+      setServices(loadedServices);
+      try { localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(loadedServices)); } catch (e) {}
     }, (error) => console.error('Firestore services listener error:', error));
 
     return () => {
@@ -222,6 +171,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await deleteDoc(doc(db, 'projects', id));
     } catch (e) {
       console.error('Failed to delete project from Firestore:', e);
+      throw e;
     }
   };
 
@@ -257,6 +207,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await deleteDoc(doc(db, 'blogPosts', id));
     } catch (e) {
       console.error('Failed to delete blog post from Firestore:', e);
+      throw e;
     }
   };
 
@@ -285,6 +236,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await deleteDoc(doc(db, 'services', id));
     } catch (e) {
       console.error('Failed to delete service from Firestore:', e);
+      throw e;
     }
   };
 
@@ -293,19 +245,29 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(DEFAULT_SITE_INFO));
       await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(DEFAULT_ABOUT_INFO));
 
+      // Limpa projetos existentes e recria apenas os originais
+      const pSnap = await getDocs(collection(db, 'projects'));
       const pBatch = writeBatch(db);
+      pSnap.forEach(d => pBatch.delete(d.ref));
       PROJECTS.forEach(p => pBatch.set(doc(db, 'projects', p.id), cleanObj(p)));
       await pBatch.commit();
 
+      // Limpa artigos existentes e recria apenas os originais
+      const bSnap = await getDocs(collection(db, 'blogPosts'));
       const bBatch = writeBatch(db);
+      bSnap.forEach(d => bBatch.delete(d.ref));
       BLOG_POSTS.forEach(b => bBatch.set(doc(db, 'blogPosts', b.id), cleanObj(b)));
       await bBatch.commit();
 
+      // Limpa serviços existentes e recria apenas os originais
+      const sSnap = await getDocs(collection(db, 'services'));
       const sBatch = writeBatch(db);
+      sSnap.forEach(d => sBatch.delete(d.ref));
       SERVICES.forEach(s => sBatch.set(doc(db, 'services', s.id), cleanObj(s)));
       await sBatch.commit();
     } catch (e) {
       console.error('Failed to reset default data in Firestore:', e);
+      throw e;
     }
   };
 

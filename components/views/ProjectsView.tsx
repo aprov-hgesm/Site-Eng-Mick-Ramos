@@ -127,57 +127,65 @@ export const ProjectsView: React.FC<ProjectsViewProps> = ({
         </div>
 
         {/* Projects Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredProjects.map((p) => (
-            <div
-              key={p.id}
-              onClick={() => onSelectProject(p)}
-              className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-            >
-              <div>
-                <div className="relative h-48 overflow-hidden bg-slate-900 group/img">
-                  <img
-                    src={p.image}
-                    alt={p.title}
-                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute top-3 left-3 bg-slate-950/80 text-amber-400 font-bold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider border border-amber-500/30">
-                    {p.categoryLabel}
+        {filteredProjects.length === 0 ? (
+          <div className="py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-8 space-y-2">
+            <Layers className="w-8 h-8 text-slate-400 mx-auto" />
+            <h3 className="text-base font-bold text-slate-700">Nenhum projeto encontrado</h3>
+            <p className="text-xs text-slate-500">Não há projetos cadastrados nesta categoria no momento.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {filteredProjects.map((p) => (
+              <div
+                key={p.id}
+                onClick={() => onSelectProject(p)}
+                className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="relative h-48 overflow-hidden bg-slate-900 group/img">
+                    <img
+                      src={p.image}
+                      alt={p.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 left-3 bg-slate-950/80 text-amber-400 font-bold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider border border-amber-500/30">
+                      {p.categoryLabel}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleOpenDirectLightbox(e, p)}
+                      className="absolute top-3 right-3 p-2 rounded-full bg-slate-950/70 hover:bg-amber-500 text-white hover:text-slate-950 transition-all opacity-80 group-hover/img:opacity-100 shadow-md border border-white/20"
+                      title="Ver fotos em tela cheia"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => handleOpenDirectLightbox(e, p)}
-                    className="absolute top-3 right-3 p-2 rounded-full bg-slate-950/70 hover:bg-amber-500 text-white hover:text-slate-950 transition-all opacity-80 group-hover/img:opacity-100 shadow-md border border-white/20"
-                    title="Ver fotos em tela cheia"
-                  >
-                    <ZoomIn className="w-4 h-4" />
-                  </button>
+                  <div className="p-5 space-y-2">
+                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-amber-600" />
+                      {p.location}
+                    </span>
+                    <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors leading-snug">
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 line-clamp-2 pt-1">
+                      {p.description}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-5 space-y-2">
-                  <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-amber-600" />
-                    {p.location}
+                <div className="px-5 pb-5 pt-2">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
+                    <span>VER DETALHES</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </span>
-                  <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors leading-snug">
-                    {p.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 line-clamp-2 pt-1">
-                    {p.description}
-                  </p>
                 </div>
               </div>
-
-              <div className="px-5 pb-5 pt-2">
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-                  <span>VER DETALHES</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </section>
 

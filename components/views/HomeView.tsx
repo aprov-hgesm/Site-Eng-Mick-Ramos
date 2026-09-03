@@ -4,7 +4,7 @@ import React from 'react';
 import { 
   ShieldCheck, Target, Compass, HardHat, Users, Award, MapPin, 
   ArrowRight, FolderCheck, Building2, FileCheck2, Sparkles, CheckCircle2,
-  Star, Quote, Search, FileText, Flame, Box
+  Star, Quote, Search, FileText, Flame, Box, Layers
 } from 'lucide-react';
 import { SITE_INFO, SERVICES, Project } from '@/lib/siteData';
 import { useSiteData } from '@/lib/SiteContext';
@@ -305,48 +305,56 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredServices.map((s) => (
-              <div
-                key={s.id}
-                className="group p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-white hover:border-amber-500/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-              >
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
-                    {s.iconName === 'Search' && <Search className="w-6 h-6" />}
-                    {s.iconName === 'FileText' && <FileText className="w-6 h-6" />}
-                    {s.iconName === 'Building2' && <Building2 className="w-6 h-6" />}
-                    {s.iconName === 'FileCheck' && <FileCheck2 className="w-6 h-6" />}
-                    {s.iconName === 'HardHat' && <HardHat className="w-6 h-6" />}
-                    {s.iconName === 'Compass' && <Compass className="w-6 h-6" />}
-                    {s.iconName === 'Flame' && <Flame className="w-6 h-6" />}
-                    {s.iconName === 'Box' && <Box className="w-6 h-6" />}
+          {featuredServices.length === 0 ? (
+            <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-8 space-y-2">
+              <Compass className="w-8 h-8 text-slate-400 mx-auto" />
+              <h3 className="text-base font-bold text-slate-700">Nenhum serviço em destaque no momento</h3>
+              <p className="text-xs text-slate-500">Em breve nossa grade de serviços será atualizada.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredServices.map((s) => (
+                <div
+                  key={s.id}
+                  className="group p-6 rounded-2xl bg-slate-50 border border-slate-200 hover:bg-white hover:border-amber-500/40 hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div className="space-y-4">
+                    <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-600 group-hover:bg-amber-500 group-hover:text-slate-950 transition-colors">
+                      {s.iconName === 'Search' && <Search className="w-6 h-6" />}
+                      {s.iconName === 'FileText' && <FileText className="w-6 h-6" />}
+                      {s.iconName === 'Building2' && <Building2 className="w-6 h-6" />}
+                      {s.iconName === 'FileCheck' && <FileCheck2 className="w-6 h-6" />}
+                      {s.iconName === 'HardHat' && <HardHat className="w-6 h-6" />}
+                      {s.iconName === 'Compass' && <Compass className="w-6 h-6" />}
+                      {s.iconName === 'Flame' && <Flame className="w-6 h-6" />}
+                      {s.iconName === 'Box' && <Box className="w-6 h-6" />}
+                    </div>
+
+                    <h3 className="font-serif font-bold text-slate-900 text-base uppercase tracking-wide group-hover:text-amber-600 transition-colors">
+                      {s.title}
+                    </h3>
+
+                    <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
+                      {s.shortDesc}
+                    </p>
                   </div>
 
-                  <h3 className="font-serif font-bold text-slate-900 text-base uppercase tracking-wide group-hover:text-amber-600 transition-colors">
-                    {s.title}
-                  </h3>
-
-                  <p className="text-slate-600 text-xs leading-relaxed line-clamp-3">
-                    {s.shortDesc}
-                  </p>
+                  <div className="pt-6">
+                    <button
+                      onClick={() => {
+                        setActiveTab('servicos');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform"
+                    >
+                      <span>SAIBA MAIS</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
-
-                <div className="pt-6">
-                  <button
-                    onClick={() => {
-                      setActiveTab('servicos');
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform"
-                  >
-                    <span>SAIBA MAIS</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -378,45 +386,53 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
 
           {/* Grid of 4 Featured Projects */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredProjects.map((p) => (
-              <div
-                key={p.id}
-                onClick={() => onSelectProject(p)}
-                className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-              >
-                <div>
-                  <div className="relative h-48 overflow-hidden bg-slate-900">
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-3 left-3 bg-slate-950/80 text-amber-400 font-bold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider border border-amber-500/30">
-                      {p.categoryLabel}
+          {featuredProjects.length === 0 ? (
+            <div className="py-12 text-center bg-white rounded-2xl border border-dashed border-slate-200 p-8 space-y-2">
+              <Layers className="w-8 h-8 text-slate-400 mx-auto" />
+              <h3 className="text-base font-bold text-slate-700">Nenhum projeto em destaque no momento</h3>
+              <p className="text-xs text-slate-500">Novas obras e projetos técnicos serão destacados em breve.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredProjects.map((p) => (
+                <div
+                  key={p.id}
+                  onClick={() => onSelectProject(p)}
+                  className="group cursor-pointer bg-white rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="relative h-48 overflow-hidden bg-slate-900">
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute top-3 left-3 bg-slate-950/80 text-amber-400 font-bold text-[10px] uppercase px-2.5 py-1 rounded-md tracking-wider border border-amber-500/30">
+                        {p.categoryLabel}
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-2">
+                      <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
+                        <MapPin className="w-3 h-3 text-amber-600" />
+                        {p.location}
+                      </span>
+                      <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors line-clamp-2">
+                        {p.title}
+                      </h3>
                     </div>
                   </div>
 
-                  <div className="p-5 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-amber-600" />
-                      {p.location}
+                  <div className="px-5 pb-5 pt-2">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
+                      <span>VER DETALHES</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </span>
-                    <h3 className="font-serif font-bold text-slate-900 text-base group-hover:text-amber-600 transition-colors line-clamp-2">
-                      {p.title}
-                    </h3>
                   </div>
                 </div>
-
-                <div className="px-5 pb-5 pt-2">
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-                    <span>VER DETALHES</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
         </div>
       </section>
