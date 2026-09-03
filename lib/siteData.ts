@@ -77,7 +77,6 @@ export interface AboutInfo {
   quoteText: string;
   quoteAuthor: string;
   quoteRoleCrea: string;
-  authorPhotoUrl?: string;
 }
 
 export const DEFAULT_ABOUT_INFO: AboutInfo = {
@@ -92,7 +91,6 @@ export const DEFAULT_ABOUT_INFO: AboutInfo = {
   ],
   officeImage: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
   officeLocation: 'Parnaíba - PI',
-  authorPhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80',
   valuesTitle: 'NOSSOS VALORES',
   valuesSubtitle: 'Pilares da Nossa Atuação',
   values: [
@@ -141,7 +139,6 @@ export interface SiteContactInfo {
   heroImageTitle?: string;
   homeAboutImageUrl?: string;
   servicesHeroImage?: string;
-  blogHeroImage?: string;
 }
 
 export const DEFAULT_SITE_INFO: SiteContactInfo = {
@@ -163,7 +160,6 @@ export const DEFAULT_SITE_INFO: SiteContactInfo = {
   heroImageTitle: 'Residência Unifamiliar de Alto Padrão',
   homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
   servicesHeroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
-  blogHeroImage: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80',
   stats: [
     { label: 'Clientes atendidos', value: '+150', icon: 'Users' },
     { label: 'Projetos desenvolvidos', value: '+250', icon: 'FolderCheck' },

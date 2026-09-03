@@ -16,7 +16,7 @@ export const BlogView: React.FC<BlogViewProps> = ({
   onSelectArticle,
   onOpenQuote
 }) => {
-  const { blogPosts, siteInfo } = useSiteData();
+  const { blogPosts } = useSiteData();
   const [selectedCategory, setSelectedCategory] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -55,7 +55,7 @@ export const BlogView: React.FC<BlogViewProps> = ({
             <div className="lg:col-span-4 hidden lg:block">
               <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
                 <img
-                  src={siteInfo.blogHeroImage || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80"}
+                  src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80"
                   alt="Planta e Projetos Blog"
                   className="rounded-xl h-40 w-full object-cover"
                 />
