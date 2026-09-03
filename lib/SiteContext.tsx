@@ -80,18 +80,20 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // 1. Site Info (contact details, logos, phone, wa, CREA)
     const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data() as SiteContactInfo;
-        setSiteInfo(data);
-        try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        const data = snapshot.data() as Partial<SiteContactInfo>;
+        const merged: SiteContactInfo = { ...DEFAULT_SITE_INFO, ...data };
+        setSiteInfo(merged);
+        try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
       }
     }, (error) => console.error('Firestore siteInfo listener error:', error));
 
     // 2. About Info (hero title, image, history, values)
     const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), (snapshot) => {
       if (snapshot.exists()) {
-        const data = snapshot.data() as AboutInfo;
-        setAboutInfo(data);
-        try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        const data = snapshot.data() as Partial<AboutInfo>;
+        const merged: AboutInfo = { ...DEFAULT_ABOUT_INFO, ...data };
+        setAboutInfo(merged);
+        try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
       }
     }, (error) => console.error('Firestore aboutInfo listener error:', error));
 

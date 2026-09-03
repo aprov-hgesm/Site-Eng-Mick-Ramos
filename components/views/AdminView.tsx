@@ -13,6 +13,7 @@ import { useSiteData } from '@/lib/SiteContext';
 import { Project, BlogPost, Service, BLOG_CATEGORIES, SiteContactInfo, AboutInfo, AboutValue } from '@/lib/siteData';
 import { MRLogo } from '../MRLogo';
 import { auth, db } from '@/lib/firebase';
+import { uploadSiteImage } from '@/lib/imageStorage';
 import {
   browserSessionPersistence,
   onAuthStateChanged,
@@ -191,16 +192,22 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
   const [aboutForm, setAboutForm] = useState<AboutInfo>(aboutInfo);
   const [isUploadingAboutHeroImage, setIsUploadingAboutHeroImage] = useState(false);
   const [isUploadingAboutOfficeImage, setIsUploadingAboutOfficeImage] = useState(false);
+  const [isUploadingAuthorPhoto, setIsUploadingAuthorPhoto] = useState(false);
   const [isAboutHeroDragOver, setIsAboutHeroDragOver] = useState(false);
   const [isAboutOfficeDragOver, setIsAboutOfficeDragOver] = useState(false);
+  const [isAuthorPhotoDragOver, setIsAuthorPhotoDragOver] = useState(false);
   const aboutHeroFileInputRef = useRef<HTMLInputElement | null>(null);
   const aboutOfficeFileInputRef = useRef<HTMLInputElement | null>(null);
+  const authorPhotoFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Logo Upload State
   const [isUploadingHeaderLogo, setIsUploadingHeaderLogo] = useState(false);
   const [isUploadingFooterLogo, setIsUploadingFooterLogo] = useState(false);
+  const [isUploadingBlogHeroImage, setIsUploadingBlogHeroImage] = useState(false);
+  const [isBlogHeroDragOver, setIsBlogHeroDragOver] = useState(false);
   const headerLogoFileInputRef = useRef<HTMLInputElement | null>(null);
   const footerLogoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const blogHeroFileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (siteInfo) {
@@ -234,11 +241,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
-      const updated = { ...aboutForm, heroImage: compressed };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'about', maxWidth: 1600, maxHeight: 1200, quality: 0.85 });
+      const updated = { ...aboutForm, heroImage: downloadUrl };
       setAboutForm(updated);
       await updateAboutInfo(updated);
-      triggerToast('Imagem do cabeçalho Sobre salva e sincronizada em todos os dispositivos!');
+      triggerToast('Imagem do cabeçalho Sobre salva no Storage e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -251,11 +258,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutOfficeImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
-      const updated = { ...aboutForm, officeImage: compressed };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'about', maxWidth: 1600, maxHeight: 1200, quality: 0.85 });
+      const updated = { ...aboutForm, officeImage: downloadUrl };
       setAboutForm(updated);
       await updateAboutInfo(updated);
-      triggerToast('Imagem do escritório salva e sincronizada em todos os dispositivos!');
+      triggerToast('Imagem do escritório salva no Storage e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -264,15 +271,32 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     }
   };
 
+  const processAuthorPhotoFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingAuthorPhoto(true);
+    try {
+      const downloadUrl = await uploadSiteImage(file, { folder: 'about', maxWidth: 800, maxHeight: 800, quality: 0.88 });
+      const updated = { ...aboutForm, authorPhotoUrl: downloadUrl };
+      setAboutForm(updated);
+      await updateAboutInfo(updated);
+      triggerToast('Foto do perfil salva no Storage e sincronizada em todos os dispositivos!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a foto do perfil.');
+    } finally {
+      setIsUploadingAuthorPhoto(false);
+    }
+  };
+
   const processHeroImageFile = async (file: File) => {
     if (!file) return;
     setIsUploadingHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
-      const updated = { ...contactForm, heroImageUrl: compressed };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'hero', maxWidth: 1920, maxHeight: 1200, quality: 0.88 });
+      const updated = { ...contactForm, heroImageUrl: downloadUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Imagem do banner principal salva e atualizada no site!');
+      triggerToast('Imagem do banner principal salva no Storage e atualizada no site!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem do banner.');
@@ -285,11 +309,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHomeAboutImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 900, 0.85);
-      const updated = { ...contactForm, homeAboutImageUrl: compressed };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'about', maxWidth: 1600, maxHeight: 1200, quality: 0.85 });
+      const updated = { ...contactForm, homeAboutImageUrl: downloadUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Imagem da seção Quem Somos salva e atualizada no site!');
+      triggerToast('Imagem da seção Quem Somos salva no Storage e atualizada no site!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -298,25 +322,32 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     }
   };
 
+  const processBlogHeroFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingBlogHeroImage(true);
+    try {
+      const downloadUrl = await uploadSiteImage(file, { folder: 'blog', maxWidth: 1600, maxHeight: 1000, quality: 0.85 });
+      const updated = { ...contactForm, blogHeroImage: downloadUrl };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Banner do Blog salvo no Storage e atualizado!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a imagem do cabeçalho do Blog.');
+    } finally {
+      setIsUploadingBlogHeroImage(false);
+    }
+  };
+
   const processHeaderLogoFile = async (file: File) => {
     if (!file) return;
     setIsUploadingHeaderLogo(true);
     try {
-      let resultUrl = '';
-      if (file.type === 'image/svg+xml') {
-        resultUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      } else {
-        resultUrl = await compressImageFile(file, 800, 800, 0.9);
-      }
-      const updated = { ...contactForm, headerLogoUrl: resultUrl };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'logos', maxWidth: 1000, maxHeight: 1000, quality: 0.95 });
+      const updated = { ...contactForm, headerLogoUrl: downloadUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Logo do cabeçalho salva e sincronizada em todos os dispositivos!');
+      triggerToast('Logo do cabeçalho salva no Storage e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a logo do cabeçalho.');
@@ -329,21 +360,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingFooterLogo(true);
     try {
-      let resultUrl = '';
-      if (file.type === 'image/svg+xml') {
-        resultUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      } else {
-        resultUrl = await compressImageFile(file, 800, 800, 0.9);
-      }
-      const updated = { ...contactForm, footerLogoUrl: resultUrl };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'logos', maxWidth: 1000, maxHeight: 1000, quality: 0.95 });
+      const updated = { ...contactForm, footerLogoUrl: downloadUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Logo do rodapé salva e sincronizada em todos os dispositivos!');
+      triggerToast('Logo do rodapé salva no Storage e sincronizada em todos os dispositivos!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a logo do rodapé.');
@@ -382,11 +403,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingServicesHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
-      const updated = { ...contactForm, servicesHeroImage: compressed };
+      const downloadUrl = await uploadSiteImage(file, { folder: 'services', maxWidth: 1600, maxHeight: 1200, quality: 0.88 });
+      const updated = { ...contactForm, servicesHeroImage: downloadUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Imagem de capa da aba Serviços salva e sincronizada!');
+      triggerToast('Imagem de capa da aba Serviços salva no Storage e sincronizada!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem do cabeçalho de Serviços.');
@@ -415,9 +436,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingServiceImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 900, 0.85);
-      setServiceForm((prev) => ({ ...prev, imageUrl: compressed }));
-      triggerToast('Imagem do serviço anexada com sucesso!');
+      const downloadUrl = await uploadSiteImage(file, { folder: 'services', maxWidth: 1200, maxHeight: 900, quality: 0.85 });
+      setServiceForm((prev) => ({ ...prev, imageUrl: downloadUrl }));
+      triggerToast('Imagem do serviço salva no Storage com sucesso!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao processar imagem do serviço.');
@@ -637,18 +658,18 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsUploadingProjectImages(true);
     try {
       const fileArray = Array.from(files);
-      const compressedList = await Promise.all(
-        fileArray.map((file) => compressImageFile(file))
+      const uploadedUrls = await Promise.all(
+        fileArray.map((file) => uploadSiteImage(file, { folder: 'projects', maxWidth: 1600, maxHeight: 1200, quality: 0.85 }))
       );
 
       setProjectImages((prev) => {
         // If previous array only had the single default Unsplash placeholder, replace it with new upload
         const isOnlyDefault = prev.length === 1 && prev[0].includes('images.unsplash.com');
         const base = isOnlyDefault ? [] : prev;
-        return [...base, ...compressedList];
+        return [...base, ...uploadedUrls];
       });
 
-      triggerToast(`${compressedList.length} foto(s) adicionada(s) ao projeto!`);
+      triggerToast(`${uploadedUrls.length} foto(s) enviada(s) ao Storage e adicionada(s) ao projeto!`);
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao processar as imagens.');
@@ -702,9 +723,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingBlogImage(true);
     try {
-      const compressed = await compressImageFile(file);
-      setBlogForm((prev) => ({ ...prev, image: compressed }));
-      triggerToast('Imagem de capa do artigo atualizada!');
+      const downloadUrl = await uploadSiteImage(file, { folder: 'blog', maxWidth: 1600, maxHeight: 1000, quality: 0.85 });
+      setBlogForm((prev) => ({ ...prev, image: downloadUrl }));
+      triggerToast('Imagem de capa do artigo enviada ao Storage com sucesso!');
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao carregar a imagem.');
@@ -1701,6 +1722,99 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
         {adminTab === 'blog' && (
           <div className="space-y-6">
             
+            {/* BLOG HERO BANNER SECTION */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div>
+                  <h3 className="text-base font-serif font-bold text-white flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-amber-400" />
+                    <span>Imagem de Capa / Banner do Blog</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Esta imagem é exibida no topo da página do Blog para todos os visitantes.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
+                <div className="relative rounded-xl overflow-hidden border border-amber-500/30 bg-slate-950 h-32">
+                  <img
+                    src={contactForm.blogHeroImage || "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80"}
+                    alt="Preview Banner Blog"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex items-end p-2.5">
+                    <span className="text-white text-xs font-bold font-serif truncate">Banner Ativo do Blog</span>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2 space-y-3">
+                  <div
+                    onDragOver={(e) => { e.preventDefault(); setIsBlogHeroDragOver(true); }}
+                    onDragLeave={() => setIsBlogHeroDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsBlogHeroDragOver(false);
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) processBlogHeroFile(file);
+                    }}
+                    className={`p-3.5 rounded-xl border-2 border-dashed transition-all text-center space-y-2 ${
+                      isBlogHeroDragOver ? 'border-amber-400 bg-amber-500/10' : 'border-slate-800 bg-slate-950'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      ref={blogHeroFileInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) processBlogHeroFile(file);
+                      }}
+                      accept="image/*"
+                      className="hidden"
+                    />
+
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => blogHeroFileInputRef.current?.click()}
+                        disabled={isUploadingBlogHeroImage}
+                        className="px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>{isUploadingBlogHeroImage ? 'Enviando ao Storage...' : 'Enviar Banner ao Storage'}</span>
+                      </button>
+
+                      {contactForm.blogHeroImage && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = { ...contactForm, blogHeroImage: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80' };
+                            setContactForm(updated);
+                            updateSiteInfo(updated);
+                            triggerToast('Banner padrão do Blog restaurado!');
+                          }}
+                          className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-xl transition-colors"
+                          title="Restaurar Padrão"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <input
+                      type="text"
+                      value={contactForm.blogHeroImage || ''}
+                      onChange={(e) => setContactForm({ ...contactForm, blogHeroImage: e.target.value })}
+                      placeholder="Ou cole a URL direta da imagem..."
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <div>
                 <h2 className="text-xl font-serif font-bold text-white">
@@ -2448,6 +2562,68 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs font-mono uppercase"
                           required
                         />
+                      </div>
+                    </div>
+
+                    {/* Foto de Perfil do Autor */}
+                    <div className="pt-2 border-t border-slate-800 space-y-3">
+                      <span className="text-[11px] font-bold text-slate-300 uppercase block">
+                        Foto de Perfil do Autor (Exibida no Blog e Perfil)
+                      </span>
+                      <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="w-16 h-16 rounded-full border-2 border-amber-400 overflow-hidden bg-slate-900 shrink-0">
+                          <img
+                            src={aboutForm.authorPhotoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"}
+                            alt="Foto do Perfil"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex-1 w-full space-y-2">
+                          <input
+                            type="file"
+                            ref={authorPhotoFileInputRef}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) processAuthorPhotoFile(file);
+                            }}
+                            accept="image/*"
+                            className="hidden"
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => authorPhotoFileInputRef.current?.click()}
+                              disabled={isUploadingAuthorPhoto}
+                              className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-lg transition-all flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingAuthorPhoto ? 'Enviando ao Storage...' : 'Alterar Foto'}</span>
+                            </button>
+                            {aboutForm.authorPhotoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = { ...aboutForm, authorPhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80' };
+                                  setAboutForm(updated);
+                                  updateAboutInfo(updated);
+                                  triggerToast('Foto restaurada para padrão!');
+                                }}
+                                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition-colors"
+                                title="Restaurar padrão"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                              </button>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            value={aboutForm.authorPhotoUrl || ''}
+                            onChange={(e) => setAboutForm({ ...aboutForm, authorPhotoUrl: e.target.value })}
+                            placeholder="Ou informe a URL da foto (https://...)"
+                            className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

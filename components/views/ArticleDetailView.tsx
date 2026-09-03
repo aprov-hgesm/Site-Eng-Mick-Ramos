@@ -24,7 +24,7 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
   onOpenQuote,
   setActiveTab
 }) => {
-  const { blogPosts } = useSiteData();
+  const { blogPosts, aboutInfo, siteInfo } = useSiteData();
   const post = blogPosts.find((p) => p.id === articleId) || blogPosts[0] || {
     id: 'default',
     title: 'Artigo',
@@ -221,15 +221,15 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
             <div className="p-6 rounded-2xl bg-[#0A1128] text-white border border-amber-500/30 space-y-4 text-center">
               <div className="w-20 h-20 rounded-full border-2 border-amber-400 overflow-hidden mx-auto bg-slate-800">
                 <img
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"
-                  alt="Mick Ramos Engenheiro Civil"
+                  src={aboutInfo.authorPhotoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"}
+                  alt={aboutInfo.quoteAuthor || "Mick Ramos Engenheiro Civil"}
                   className="w-full h-full object-cover"
                 />
               </div>
 
               <div>
-                <h4 className="font-serif font-bold text-lg text-white">Mick Ramos</h4>
-                <p className="text-xs text-amber-400 font-mono">Engenheiro Civil • {SITE_INFO.crea}</p>
+                <h4 className="font-serif font-bold text-lg text-white">{aboutInfo.quoteAuthor || "Mick Ramos"}</h4>
+                <p className="text-xs text-amber-400 font-mono">{aboutInfo.quoteRoleCrea || `Engenheiro Civil • ${siteInfo.crea}`}</p>
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
