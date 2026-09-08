@@ -139,6 +139,10 @@ export interface SiteContactInfo {
   heroImageTitle?: string;
   homeAboutImageUrl?: string;
   servicesHeroImage?: string;
+  engineerPhotoUrl?: string;
+  engineerName?: string;
+  engineerRole?: string;
+  engineerBio?: string;
 }
 
 export const DEFAULT_SITE_INFO: SiteContactInfo = {
@@ -160,6 +164,10 @@ export const DEFAULT_SITE_INFO: SiteContactInfo = {
   heroImageTitle: 'Residência Unifamiliar de Alto Padrão',
   homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
   servicesHeroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80',
+  engineerPhotoUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80',
+  engineerName: 'Mick Ramos',
+  engineerRole: 'Engenheiro Civil',
+  engineerBio: 'Especialista em projetos, vistorias e consultoria técnica para obras e regularizações de imóveis em Parnaíba e região.',
   stats: [
     { label: 'Clientes atendidos', value: '+150', icon: 'Users' },
     { label: 'Projetos desenvolvidos', value: '+250', icon: 'FolderCheck' },

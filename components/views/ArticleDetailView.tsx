@@ -24,7 +24,7 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
   onOpenQuote,
   setActiveTab
 }) => {
-  const { blogPosts } = useSiteData();
+  const { blogPosts, siteInfo } = useSiteData();
   const post = blogPosts.find((p) => p.id === articleId) || blogPosts[0] || {
     id: 'default',
     title: 'Artigo',
@@ -218,22 +218,26 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
           <div className="lg:col-span-4 space-y-8">
             
             {/* SOBRE O AUTOR CARD (NAVY BG AS IN IMAGE 1) */}
-            <div className="p-6 rounded-2xl bg-[#0A1128] text-white border border-amber-500/30 space-y-4 text-center">
-              <div className="w-20 h-20 rounded-full border-2 border-amber-400 overflow-hidden mx-auto bg-slate-800">
+            <div className="p-6 rounded-2xl bg-[#0A1128] text-white border border-amber-500/30 space-y-4 text-center shadow-xl">
+              <div className="w-20 h-20 rounded-full border-2 border-amber-400 overflow-hidden mx-auto bg-slate-800 shadow-md">
                 <img
-                  src="https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"
-                  alt="Mick Ramos Engenheiro Civil"
+                  src={siteInfo?.engineerPhotoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"}
+                  alt={`${siteInfo?.engineerName || 'Mick Ramos'} Engenheiro Civil`}
                   className="w-full h-full object-cover"
                 />
               </div>
 
               <div>
-                <h4 className="font-serif font-bold text-lg text-white">Mick Ramos</h4>
-                <p className="text-xs text-amber-400 font-mono">Engenheiro Civil • {SITE_INFO.crea}</p>
+                <h4 className="font-serif font-bold text-lg text-white">
+                  {siteInfo?.engineerName || 'Mick Ramos'}
+                </h4>
+                <p className="text-xs text-amber-400 font-mono">
+                  {siteInfo?.engineerRole || 'Engenheiro Civil'} • {siteInfo?.crea || SITE_INFO.crea}
+                </p>
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                Especialista em projetos, vistorias e consultoria técnica para obras e regularizações de imóveis em Parnaíba e região.
+                {siteInfo?.engineerBio || 'Especialista em projetos, vistorias e consultoria técnica para obras e regularizações de imóveis em Parnaíba e região.'}
               </p>
 
               <button
@@ -241,7 +245,7 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
                   setActiveTab('sobre');
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                className="text-xs font-bold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1"
+                className="text-xs font-bold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1 transition-colors"
               >
                 <span>Saiba mais sobre nós</span>
                 <ArrowRight className="w-3.5 h-3.5" />

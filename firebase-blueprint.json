@@ -67,7 +67,10 @@
         "cityRegion": { "type": "string" },
         "hours": { "type": "string" },
         "headerLogoUrl": { "type": "string" },
-        "footerLogoUrl": { "type": "string" }
+        "footerLogoUrl": { "type": "string" },
+        "engineerPhotoUrl": { "type": "string" },
+        "engineerRole": { "type": "string" },
+        "engineerBio": { "type": "string" }
       }
     },
     "QuoteRequest": {

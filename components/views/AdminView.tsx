@@ -395,6 +395,42 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     }
   };
 
+  // Engineer Profile & Photo State (Author Preview in Blog Articles)
+  const [isUploadingEngineerPhoto, setIsUploadingEngineerPhoto] = useState(false);
+  const [isEngineerPhotoDragOver, setIsEngineerPhotoDragOver] = useState(false);
+  const engineerPhotoFileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const processEngineerPhotoFile = async (file: File) => {
+    if (!file) return;
+    setIsUploadingEngineerPhoto(true);
+    try {
+      const compressed = await compressImageFile(file, 800, 800, 0.85);
+      const updated = { ...contactForm, engineerPhotoUrl: compressed };
+      setContactForm(updated);
+      await updateSiteInfo(updated);
+      triggerToast('Foto do perfil do engenheiro salva e sincronizada em todos os dispositivos!');
+    } catch (err: any) {
+      console.error(err);
+      triggerToast(err?.message || 'Erro ao carregar a foto do engenheiro.');
+    } finally {
+      setIsUploadingEngineerPhoto(false);
+    }
+  };
+
+  const handleRestoreDefaultEngineerPhoto = async () => {
+    const defaultPhoto = 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80';
+    const updated = { ...contactForm, engineerPhotoUrl: defaultPhoto };
+    setContactForm(updated);
+    await updateSiteInfo(updated);
+    triggerToast('Foto padrão do engenheiro restaurada com sucesso!');
+  };
+
+  const handleSaveEngineerProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    await updateSiteInfo(contactForm);
+    triggerToast('Perfil e foto do engenheiro salvos com sucesso!');
+  };
+
   // Service Modal State
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
@@ -1720,6 +1756,228 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
               </button>
             </div>
 
+            {/* FOTO E PERFIL DO ENGENHEIRO (EXIBIDO NA LEITURA DOS ARTIGOS) */}
+            <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
+              <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] uppercase font-bold mb-2">
+                    <User className="w-3.5 h-3.5" />
+                    <span>Prévia do Perfil na Leitura dos Artigos</span>
+                  </div>
+                  <h3 className="text-lg font-serif font-bold text-white flex items-center gap-2">
+                    <span>Foto de Perfil e Dados do Engenheiro</span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Esta foto e biografia aparecem no quadro &ldquo;Sobre o Autor&rdquo; na lateral ao abrir qualquer artigo do blog.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleSaveEngineerProfile}
+                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 shadow-lg self-start sm:self-auto"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Dados do Perfil</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                
+                {/* PREVIEW DO CARD COMO APARECE NO ARTIGO */}
+                <div className="lg:col-span-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                      Como os leitores veem:
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase">
+                      Pré-visualização
+                    </span>
+                  </div>
+
+                  <div className="p-6 rounded-2xl bg-[#0A1128] text-white border border-amber-500/30 space-y-4 text-center shadow-xl">
+                    <div className="relative w-24 h-24 rounded-full border-2 border-amber-400 overflow-hidden mx-auto bg-slate-800 shadow-md group">
+                      <img
+                        src={contactForm.engineerPhotoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"}
+                        alt="Foto do Engenheiro"
+                        className="w-full h-full object-cover"
+                      />
+                      <div 
+                        onClick={() => engineerPhotoFileInputRef.current?.click()}
+                        className="absolute inset-0 bg-slate-950/70 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-amber-400 text-[10px] font-bold"
+                      >
+                        <Upload className="w-5 h-5 mb-1" />
+                        <span>Trocar Foto</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="font-serif font-bold text-lg text-white">
+                        {contactForm.engineerName || contactForm.brandName || 'Mick Ramos'}
+                      </h4>
+                      <p className="text-xs text-amber-400 font-mono">
+                        {contactForm.engineerRole || contactForm.role || 'Engenheiro Civil'} • {contactForm.crea || 'CREA 1920983666'}
+                      </p>
+                    </div>
+
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {contactForm.engineerBio || 'Especialista em projetos, vistorias e consultoria técnica para obras e regularizações de imóveis em Parnaíba e região.'}
+                    </p>
+
+                    <div className="text-xs font-bold text-amber-400 inline-flex items-center gap-1 opacity-80 pointer-events-none">
+                      <span>Saiba mais sobre nós</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* CONTROLES DE UPLOAD & FORMULÁRIO */}
+                <div className="lg:col-span-8 space-y-6">
+                  
+                  {/* UPLOAD PHOTO DROPZONE */}
+                  <div className="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                      <label className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                        <Upload className="w-4 h-4 text-amber-400" />
+                        <span>Alterar Foto de Perfil do Engenheiro</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        Formatos: JPG, PNG, WEBP • Recomendado: 1:1 (quadrado)
+                      </span>
+                    </div>
+
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsEngineerPhotoDragOver(true); }}
+                      onDragLeave={() => setIsEngineerPhotoDragOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsEngineerPhotoDragOver(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) processEngineerPhotoFile(file);
+                      }}
+                      className={`p-6 rounded-xl border-2 border-dashed transition-all text-center space-y-3 ${
+                        isEngineerPhotoDragOver
+                          ? 'border-amber-400 bg-amber-500/10'
+                          : 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                      }`}
+                    >
+                      <input
+                        type="file"
+                        ref={engineerPhotoFileInputRef}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) processEngineerPhotoFile(file);
+                        }}
+                        accept="image/*"
+                        className="hidden"
+                      />
+
+                      <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                        <FileUp className="w-6 h-6" />
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold text-white">
+                          Arraste e solte uma nova foto do engenheiro aqui
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1">
+                          ou clique no botão abaixo para selecionar do seu dispositivo
+                        </p>
+                      </div>
+
+                      <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => engineerPhotoFileInputRef.current?.click()}
+                          disabled={isUploadingEngineerPhoto}
+                          className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                        >
+                          <Upload className="w-4 h-4" />
+                          <span>{isUploadingEngineerPhoto ? 'Comprimindo e salvando...' : 'Fazer Upload da Foto'}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRestoreDefaultEngineerPhoto}
+                          className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
+                          title="Restaurar foto padrão"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Restaurar Foto Padrão</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                        Ou informe a URL direta da imagem:
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={contactForm.engineerPhotoUrl || ''}
+                          onChange={(e) => setContactForm({ ...contactForm, engineerPhotoUrl: e.target.value })}
+                          placeholder="https://..."
+                          className="flex-1 px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveEngineerProfile}
+                          className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-400 text-xs font-bold rounded-xl cursor-pointer"
+                        >
+                          Aplicar URL
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* CAMPOS DE IDENTIFICAÇÃO DO PERFIL */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Nome do Engenheiro / Autor
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.engineerName || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, engineerName: e.target.value })}
+                        placeholder="Mick Ramos"
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Cargo / Especialidade
+                      </label>
+                      <input
+                        type="text"
+                        value={contactForm.engineerRole || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, engineerRole: e.target.value })}
+                        placeholder="Engenheiro Civil"
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-bold text-slate-300 mb-1">
+                        Minibiografia / Descrição Técnica Exibida no Artigo
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={contactForm.engineerBio || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, engineerBio: e.target.value })}
+                        placeholder="Especialista em projetos, vistorias e consultoria técnica para obras e regularizações de imóveis em Parnaíba e região."
+                        className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none resize-none"
+                      />
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+            </div>
+
             {/* BLOG LIST TABLE */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
               <div className="overflow-x-auto">
@@ -2732,6 +2990,70 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           placeholder="https://... ou deixa em branco para usar a do cabeçalho"
                           className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
                         />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* FOTO DE PERFIL DO ENGENHEIRO NO CONTATO */}
+                  <div className="pt-2">
+                    <div className="p-5 bg-slate-950 border border-amber-500/30 rounded-2xl space-y-4">
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <div>
+                          <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5" />
+                            <span>Foto de Perfil do Engenheiro (Exibido na Leitura dos Artigos)</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Foto de perfil exibida no quadro &ldquo;Sobre o Autor&rdquo; na lateral direita ao ler os artigos do blog.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-6">
+                        {/* Pré-visualização Circular */}
+                        <div className="w-24 h-24 rounded-full border-2 border-amber-400 overflow-hidden bg-slate-800 shadow-xl shrink-0">
+                          <img
+                            src={contactForm.engineerPhotoUrl || "https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=400&q=80"}
+                            alt="Foto de perfil do Engenheiro"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+
+                        <div className="flex-1 space-y-3 w-full">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() => engineerPhotoFileInputRef.current?.click()}
+                              disabled={isUploadingEngineerPhoto}
+                              className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors shadow-md cursor-pointer"
+                            >
+                              <Upload className="w-3.5 h-3.5" />
+                              <span>{isUploadingEngineerPhoto ? 'Salvando...' : 'Fazer Upload de Nova Foto'}</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={handleRestoreDefaultEngineerPhoto}
+                              className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Restaurar Foto Padrão</span>
+                            </button>
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-400 mb-1">
+                              Ou informe a URL direta da foto:
+                            </label>
+                            <input
+                              type="text"
+                              value={contactForm.engineerPhotoUrl || ''}
+                              onChange={(e) => setContactForm({ ...contactForm, engineerPhotoUrl: e.target.value })}
+                              placeholder="https://images.unsplash.com/..."
+                              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
