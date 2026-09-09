@@ -42,25 +42,13 @@ export const BlogView: React.FC<BlogViewProps> = ({
             <span className="text-white">BLOG</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-8 space-y-3">
-              <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
-                Blog MR Engenharia
-              </h1>
-              <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                Conteúdos técnicos e dicas práticas para ajudar você a construir, reformar e manter seu imóvel com segurança e qualidade.
-              </p>
-            </div>
-
-            <div className="lg:col-span-4 hidden lg:block">
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80"
-                  alt="Planta e Projetos Blog"
-                  className="rounded-xl h-40 w-full object-cover"
-                />
-              </div>
-            </div>
+          <div className="max-w-3xl space-y-3">
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight">
+              Blog MR Engenharia
+            </h1>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              Conteúdos técnicos e dicas práticas para ajudar você a construir, reformar e manter seu imóvel com segurança e qualidade.
+            </p>
           </div>
 
         </div>

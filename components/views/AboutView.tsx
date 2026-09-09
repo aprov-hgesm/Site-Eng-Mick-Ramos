@@ -39,27 +39,13 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
             <span className="text-white">SOBRE</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-8 space-y-4">
-              <h1 className="text-4xl sm:text-5xl font-serif font-bold text-white tracking-tight">
-                {aboutInfo.heroTitle || 'Sobre'}
-              </h1>
-              <p className="text-slate-300 text-base sm:text-lg max-w-2xl leading-relaxed">
-                {aboutInfo.heroSubtitle}
-              </p>
-            </div>
-
-            {aboutInfo.heroImage && (
-              <div className="lg:col-span-4 block mt-4 lg:mt-0">
-                <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group shadow-lg">
-                  <img
-                    src={aboutInfo.heroImage}
-                    alt={siteInfo.brandName}
-                    className="rounded-xl h-44 sm:h-52 lg:h-40 w-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-                </div>
-              </div>
-            )}
+          <div className="max-w-3xl space-y-4">
+            <h1 className="text-4xl sm:text-5xl font-serif font-bold text-white tracking-tight">
+              {aboutInfo.heroTitle || 'Sobre'}
+            </h1>
+            <p className="text-slate-300 text-base sm:text-lg leading-relaxed">
+              {aboutInfo.heroSubtitle}
+            </p>
           </div>
 
         </div>

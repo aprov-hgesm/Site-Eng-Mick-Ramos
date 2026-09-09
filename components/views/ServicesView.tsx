@@ -59,25 +59,13 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
             <span className="text-white">SERVIÇOS</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-8 space-y-4">
-              <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight leading-tight">
-                Soluções técnicas com responsabilidade e excelência.
-              </h1>
-              <p className="text-slate-300 text-sm sm:text-base max-w-2xl leading-relaxed">
-                Serviços completos em engenharia civil para garantir segurança, qualidade e tranquilidade em todas as etapas do seu projeto ou obra.
-              </p>
-            </div>
-
-            <div className="lg:col-span-4 block mt-4 lg:mt-0">
-              <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group shadow-lg">
-                <img
-                  src={siteInfo.servicesHeroImage || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"}
-                  alt="Engenharia Civil - Serviços"
-                  className="rounded-xl h-44 sm:h-52 lg:h-44 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-              </div>
-            </div>
+          <div className="max-w-3xl space-y-4">
+            <h1 className="text-3xl sm:text-5xl font-serif font-bold text-white tracking-tight leading-tight">
+              Soluções técnicas com responsabilidade e excelência.
+            </h1>
+            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+              Serviços completos em engenharia civil para garantir segurança, qualidade e tranquilidade em todas as etapas do seu projeto ou obra.
+            </p>
           </div>
 
         </div>
