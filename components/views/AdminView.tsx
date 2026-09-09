@@ -22,12 +22,12 @@ import {
 } from 'firebase/auth';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
-// Helper to compress uploaded images to lightweight Base64 (preserves PNG/WebP transparency)
+// Helper to compress uploaded images to ultra-lightweight WebP/JPEG Base64
 const compressImageFile = (
   file: File, 
-  maxWidth = 1200, 
-  maxHeight = 800, 
-  quality = 0.76,
+  maxWidth = 1000, 
+  maxHeight = 750, 
+  quality = 0.72,
   outputType?: string
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -65,10 +65,16 @@ const compressImageFile = (
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Keep PNG or WebP format for transparent images/logos
+        // Prefer modern WebP or PNG (if transparent) for minimal payload size
         const isTransparent = file.type === 'image/png' || file.type === 'image/webp';
-        const format = outputType || (isTransparent ? file.type : 'image/jpeg');
-        const compressed = canvas.toDataURL(format, quality);
+        const format = outputType || (isTransparent ? file.type : 'image/webp');
+        let compressed = canvas.toDataURL(format, quality);
+
+        // Fallback to jpeg if browser returns unsupported format string
+        if (!compressed.startsWith('data:image/webp') && !isTransparent) {
+          compressed = canvas.toDataURL('image/jpeg', quality);
+        }
+
         resolve(compressed);
       };
       img.src = evt.target?.result as string;
@@ -102,8 +108,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     resetToDefaultData
   } = useSiteData();
 
-  // Admin UID for Firebase Authentication authorization
+  // Admin credentials for Firebase Authentication authorization
   const ADMIN_UID = 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+  const ADMIN_EMAIL = 'aprov1hgesm@gmail.com';
 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -118,7 +125,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       auth,
       async (user) => {
         try {
-          if (user && (user.uid === ADMIN_UID || user.email === 'aprov1hgesm@gmail.com')) {
+          if (user && (user.uid === ADMIN_UID || user.email === ADMIN_EMAIL)) {
             setIsAuthenticated(true);
           } else {
             setIsAuthenticated(false);
@@ -504,7 +511,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsServiceModalOpen(true);
   };
 
-  const handleSaveService = (e: React.FormEvent) => {
+  const handleSaveService = async (e: React.FormEvent) => {
     e.preventDefault();
     const benefits = serviceForm.benefitsText
       .split('\n')
@@ -526,14 +533,19 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       deliverables,
     };
 
-    if (editingService) {
-      updateService(editingService.id, payload);
-      triggerToast(`Serviço "${serviceForm.title}" atualizado com sucesso!`);
-    } else {
-      addService(payload);
-      triggerToast(`Novo serviço "${serviceForm.title}" cadastrado com sucesso!`);
+    try {
+      if (editingService) {
+        await updateService(editingService.id, payload);
+        triggerToast(`Serviço "${serviceForm.title}" atualizado com sucesso!`);
+      } else {
+        await addService(payload);
+        triggerToast(`Novo serviço "${serviceForm.title}" cadastrado com sucesso!`);
+      }
+      setIsServiceModalOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar serviço:', err);
+      triggerToast(err?.message || 'Erro ao sincronizar serviço no banco de dados.');
     }
-    setIsServiceModalOpen(false);
   };
 
   // Project Modal State
@@ -642,7 +654,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     try {
       await setPersistence(auth, browserSessionPersistence);
       const credential = await signInWithEmailAndPassword(auth, emailInput.trim(), passwordInput);
-      if (credential.user.uid === ADMIN_UID) {
+      if (credential.user.uid === ADMIN_UID || credential.user.email === ADMIN_EMAIL) {
         setIsAuthenticated(true);
         setPasswordInput('');
       } else {
@@ -667,7 +679,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsAuthenticated(false);
   };
 
-  // Multiple project images upload processor
+  // Multiple project images upload processor (enforces safe 5-photo limit)
   const processProjectFiles = async (files: FileList | File[]) => {
     if (!files || files.length === 0) return;
     setIsUploadingProjectImages(true);
@@ -681,10 +693,17 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
         // If previous array only had the single default Unsplash placeholder, replace it with new upload
         const isOnlyDefault = prev.length === 1 && prev[0].includes('images.unsplash.com');
         const base = isOnlyDefault ? [] : prev;
-        return [...base, ...compressedList];
+        const combined = [...base, ...compressedList];
+        
+        // Cap at 5 photos max per project to guarantee Firestore document stays well within 1MB limit
+        if (combined.length > 5) {
+          triggerToast('Galeria limitada a 5 fotos por projeto para garantir máxima velocidade e compatibilidade na nuvem.');
+          return combined.slice(0, 5);
+        }
+        return combined;
       });
 
-      triggerToast(`${compressedList.length} foto(s) adicionada(s) ao projeto!`);
+      triggerToast(`${compressedList.length} foto(s) processada(s) e adicionada(s) ao projeto!`);
     } catch (err: any) {
       console.error(err);
       triggerToast(err?.message || 'Erro ao processar as imagens.');
@@ -802,7 +821,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsProjectModalOpen(true);
   };
 
-  const handleSaveProject = (e: React.FormEvent) => {
+  const handleSaveProject = async (e: React.FormEvent) => {
     e.preventDefault();
     const features = projectForm.featuresText
       .split(',')
@@ -816,39 +835,44 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (projectForm.category === 'PPCI') catLabel = 'PPCI / INCÊNDIO';
 
     const defaultCover = 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80';
-    const finalImages = projectImages.length > 0 ? projectImages : [projectForm.image || defaultCover];
+    const finalImages = projectImages.length > 0 ? projectImages.slice(0, 5) : [projectForm.image || defaultCover];
     const mainCover = finalImages[0];
 
-    if (editingProject) {
-      updateProject(editingProject.id, {
-        title: projectForm.title,
-        category: projectForm.category,
-        categoryLabel: catLabel,
-        location: projectForm.location,
-        image: mainCover,
-        images: finalImages,
-        description: projectForm.description,
-        area: projectForm.area,
-        year: projectForm.year,
-        features,
-      });
-      triggerToast(`Projeto "${projectForm.title}" atualizado com sucesso!`);
-    } else {
-      addProject({
-        title: projectForm.title,
-        category: projectForm.category,
-        categoryLabel: catLabel,
-        location: projectForm.location,
-        image: mainCover,
-        images: finalImages,
-        description: projectForm.description,
-        area: projectForm.area,
-        year: projectForm.year,
-        features,
-      });
-      triggerToast(`Projeto "${projectForm.title}" cadastrado com sucesso!`);
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, {
+          title: projectForm.title,
+          category: projectForm.category,
+          categoryLabel: catLabel,
+          location: projectForm.location,
+          image: mainCover,
+          images: finalImages,
+          description: projectForm.description,
+          area: projectForm.area,
+          year: projectForm.year,
+          features,
+        });
+        triggerToast(`Projeto "${projectForm.title}" atualizado com sucesso!`);
+      } else {
+        await addProject({
+          title: projectForm.title,
+          category: projectForm.category,
+          categoryLabel: catLabel,
+          location: projectForm.location,
+          image: mainCover,
+          images: finalImages,
+          description: projectForm.description,
+          area: projectForm.area,
+          year: projectForm.year,
+          features,
+        });
+        triggerToast(`Projeto "${projectForm.title}" cadastrado com sucesso!`);
+      }
+      setIsProjectModalOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar projeto:', err);
+      triggerToast(err?.message || 'Erro ao sincronizar projeto no banco de dados. Verifique a conexão.');
     }
-    setIsProjectModalOpen(false);
   };
 
   // Open Blog Form
@@ -896,7 +920,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsBlogModalOpen(true);
   };
 
-  const handleSaveBlogPost = (e: React.FormEvent) => {
+  const handleSaveBlogPost = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const catObj = BLOG_CATEGORIES.find((c) => c.id === blogForm.category);
@@ -913,32 +937,39 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       conclusion: blogForm.conclusion,
     };
 
-    if (editingBlogPost) {
-      updateBlogPost(editingBlogPost.id, {
-        title: blogForm.title,
-        category: blogForm.category,
-        categoryLabel: catLabel,
-        author: blogForm.author,
-        date: blogForm.date,
-        readTime: blogForm.readTime,
-        image: blogForm.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
-        excerpt: blogForm.excerpt,
-        content,
-      });
-    } else {
-      addBlogPost({
-        title: blogForm.title,
-        category: blogForm.category,
-        categoryLabel: catLabel,
-        author: blogForm.author,
-        date: blogForm.date,
-        readTime: blogForm.readTime,
-        image: blogForm.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
-        excerpt: blogForm.excerpt,
-        content,
-      });
+    try {
+      if (editingBlogPost) {
+        await updateBlogPost(editingBlogPost.id, {
+          title: blogForm.title,
+          category: blogForm.category,
+          categoryLabel: catLabel,
+          author: blogForm.author,
+          date: blogForm.date,
+          readTime: blogForm.readTime,
+          image: blogForm.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
+          excerpt: blogForm.excerpt,
+          content,
+        });
+        triggerToast(`Artigo "${blogForm.title}" atualizado com sucesso!`);
+      } else {
+        await addBlogPost({
+          title: blogForm.title,
+          category: blogForm.category,
+          categoryLabel: catLabel,
+          author: blogForm.author,
+          date: blogForm.date,
+          readTime: blogForm.readTime,
+          image: blogForm.image || 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80',
+          excerpt: blogForm.excerpt,
+          content,
+        });
+        triggerToast(`Artigo "${blogForm.title}" publicado com sucesso!`);
+      }
+      setIsBlogModalOpen(false);
+    } catch (err: any) {
+      console.error('Erro ao salvar artigo:', err);
+      triggerToast(err?.message || 'Erro ao sincronizar artigo no banco de dados.');
     }
-    setIsBlogModalOpen(false);
   };
 
   // LOADING SCREEN (Checking persistent session)

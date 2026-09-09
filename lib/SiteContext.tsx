@@ -35,6 +35,15 @@ const ABOUT_INFO_STORAGE_KEY = 'mr_engenharia_about_info_v1';
 
 const cleanObj = (obj: any) => JSON.parse(JSON.stringify(obj));
 
+const safeSetLocalStorage = (key: string, value: any) => {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (err) {
+    console.warn(`[LocalStorage] Cota excedida ou acesso restrito para chave "${key}". Cache local ignorado para proteger a execução.`, err);
+  }
+};
+
 export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [projects, setProjects] = useState<Project[]>(PROJECTS);
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>(BLOG_POSTS);
@@ -83,7 +92,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = snapshot.data() as SiteContactInfo;
         setSiteInfo((prev) => {
           const merged = { ...prev, ...data };
-          try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+          safeSetLocalStorage(SITE_INFO_STORAGE_KEY, merged);
           return merged;
         });
       }
@@ -95,7 +104,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = snapshot.data() as AboutInfo;
         setAboutInfo((prev) => {
           const merged = { ...prev, ...data };
-          try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+          safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, merged);
           return merged;
         });
       }
@@ -112,7 +121,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
             if (imgData.servicesHeroImage) updated.servicesHeroImage = imgData.servicesHeroImage;
             if (imgData.heroImageUrl) updated.heroImageUrl = imgData.heroImageUrl;
             if (imgData.engineerPhotoUrl) updated.engineerPhotoUrl = imgData.engineerPhotoUrl;
-            try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
             return updated;
           });
         }
@@ -121,7 +130,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const updated: AboutInfo = { ...prev };
             if (imgData.aboutHeroImage) updated.heroImage = imgData.aboutHeroImage;
             if (imgData.aboutOfficeImage) updated.officeImage = imgData.aboutOfficeImage;
-            try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, updated);
             return updated;
           });
         }
@@ -132,21 +141,21 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubProjects = onSnapshot(collection(db, 'projects'), (snapshot) => {
       const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
       setProjects(loadedProjects);
-      try { localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(loadedProjects)); } catch (e) {}
+      safeSetLocalStorage(PROJECTS_STORAGE_KEY, loadedProjects);
     }, (error) => console.error('Firestore projects listener error:', error));
 
     // 4. Blog Posts collection
     const unsubBlog = onSnapshot(collection(db, 'blogPosts'), (snapshot) => {
       const loadedPosts = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as BlogPost));
       setBlogPosts(loadedPosts);
-      try { localStorage.setItem(BLOG_STORAGE_KEY, JSON.stringify(loadedPosts)); } catch (e) {}
+      safeSetLocalStorage(BLOG_STORAGE_KEY, loadedPosts);
     }, (error) => console.error('Firestore blogPosts listener error:', error));
 
     // 5. Services collection
     const unsubServices = onSnapshot(collection(db, 'services'), (snapshot) => {
       const loadedServices = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Service));
       setServices(loadedServices);
-      try { localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(loadedServices)); } catch (e) {}
+      safeSetLocalStorage(SERVICES_STORAGE_KEY, loadedServices);
     }, (error) => console.error('Firestore services listener error:', error));
 
     return () => {
@@ -163,16 +172,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateSiteInfo = async (updated: Partial<SiteContactInfo>) => {
     const newInfo = { ...siteInfo, ...updated };
     setSiteInfo(newInfo);
-    try {
-      localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(newInfo));
-    } catch (e) {
-      console.warn('LocalStorage save warning:', e);
-    }
+    safeSetLocalStorage(SITE_INFO_STORAGE_KEY, newInfo);
 
     try {
       await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
     } catch (e) {
       console.error('Failed to update site info in Firestore:', e);
+      throw e;
     }
 
     // Also persist image fields into dedicated image document for high reliability
@@ -194,16 +200,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateAboutInfo = async (updated: Partial<AboutInfo>) => {
     const newAbout = { ...aboutInfo, ...updated };
     setAboutInfo(newAbout);
-    try {
-      localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(newAbout));
-    } catch (e) {
-      console.warn('LocalStorage save warning:', e);
-    }
+    safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, newAbout);
 
     try {
       await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(newAbout), { merge: true });
     } catch (e) {
       console.error('Failed to update about info in Firestore:', e);
+      throw e;
     }
 
     // Also persist about images into dedicated image document
@@ -227,6 +230,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'projects', newId), cleanObj(newProject));
     } catch (e) {
       console.error('Failed to add project to Firestore:', e);
+      throw e;
     }
   };
 
@@ -237,6 +241,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'projects', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update project in Firestore:', e);
+      throw e;
     }
   };
 
@@ -263,6 +268,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'blogPosts', newId), cleanObj(newPost));
     } catch (e) {
       console.error('Failed to add blog post to Firestore:', e);
+      throw e;
     }
   };
 
@@ -273,6 +279,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'blogPosts', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update blog post in Firestore:', e);
+      throw e;
     }
   };
 
@@ -292,6 +299,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'services', newId), cleanObj(newService));
     } catch (e) {
       console.error('Failed to add service to Firestore:', e);
+      throw e;
     }
   };
 
@@ -302,6 +310,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'services', id), cleanObj(updated), { merge: true });
     } catch (e) {
       console.error('Failed to update service in Firestore:', e);
+      throw e;
     }
   };
 
