@@ -68,9 +68,32 @@
         "hours": { "type": "string" },
         "headerLogoUrl": { "type": "string" },
         "footerLogoUrl": { "type": "string" },
+        "heroImageUrl": { "type": "string" },
+        "heroImageTag": { "type": "string" },
+        "heroImageTitle": { "type": "string" },
+        "homeAboutImageUrl": { "type": "string" },
+        "servicesHeroImage": { "type": "string" },
         "engineerPhotoUrl": { "type": "string" },
         "engineerRole": { "type": "string" },
         "engineerBio": { "type": "string" }
+      }
+    },
+    "AboutInfo": {
+      "title": "AboutInfo",
+      "description": "Institutional information about the company.",
+      "type": "object",
+      "properties": {
+        "heroTitle": { "type": "string" },
+        "heroSubtitle": { "type": "string" },
+        "heroImage": { "type": "string" },
+        "officeImage": { "type": "string" },
+        "officeLocation": { "type": "string" },
+        "whoWeAreTitle": { "type": "string" },
+        "whoWeAreParagraphs": { "type": "array" },
+        "mission": { "type": "string" },
+        "vision": { "type": "string" },
+        "valuesTitle": { "type": "string" },
+        "values": { "type": "array" }
       }
     },
     "QuoteRequest": {
@@ -107,6 +130,10 @@
     "/siteConfig/contact": {
       "schema": "SiteInfo",
       "description": "Single document holding site-wide contact info."
+    },
+    "/siteConfig/about": {
+      "schema": "AboutInfo",
+      "description": "Single document holding site-wide about info."
     },
     "/quoteRequests/{requestId}": {
       "schema": "QuoteRequest",

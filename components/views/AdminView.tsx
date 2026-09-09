@@ -26,8 +26,8 @@ import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 const compressImageFile = (
   file: File, 
   maxWidth = 1200, 
-  maxHeight = 1200, 
-  quality = 0.85,
+  maxHeight = 800, 
+  quality = 0.76,
   outputType?: string
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -118,7 +118,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       auth,
       async (user) => {
         try {
-          if (user && user.uid === ADMIN_UID) {
+          if (user && (user.uid === ADMIN_UID || user.email === 'aprov1hgesm@gmail.com')) {
             setIsAuthenticated(true);
           } else {
             setIsAuthenticated(false);
@@ -234,8 +234,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
-      const updated = { ...aboutForm, heroImage: compressed };
+      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      const updated = { ...aboutInfo, ...aboutForm, heroImage: compressed };
       setAboutForm(updated);
       await updateAboutInfo(updated);
       triggerToast('Imagem do cabeçalho Sobre salva e sincronizada em todos os dispositivos!');
@@ -251,8 +251,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingAboutOfficeImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 1200, 0.82);
-      const updated = { ...aboutForm, officeImage: compressed };
+      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      const updated = { ...aboutInfo, ...aboutForm, officeImage: compressed };
       setAboutForm(updated);
       await updateAboutInfo(updated);
       triggerToast('Imagem do escritório salva e sincronizada em todos os dispositivos!');
@@ -268,8 +268,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
-      const updated = { ...contactForm, heroImageUrl: compressed };
+      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      const updated = { ...siteInfo, ...contactForm, heroImageUrl: compressed };
       setContactForm(updated);
       await updateSiteInfo(updated);
       triggerToast('Imagem do banner principal salva e atualizada no site!');
@@ -285,8 +285,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHomeAboutImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 900, 0.85);
-      const updated = { ...contactForm, homeAboutImageUrl: compressed };
+      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      const updated = { ...siteInfo, ...contactForm, homeAboutImageUrl: compressed };
       setContactForm(updated);
       await updateSiteInfo(updated);
       triggerToast('Imagem da seção Quem Somos salva e atualizada no site!');
@@ -382,8 +382,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingServicesHeroImage(true);
     try {
-      const compressed = await compressImageFile(file, 1600, 1200, 0.88);
-      const updated = { ...contactForm, servicesHeroImage: compressed };
+      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      const updated = { ...siteInfo, ...contactForm, servicesHeroImage: compressed };
       setContactForm(updated);
       await updateSiteInfo(updated);
       triggerToast('Imagem de capa da aba Serviços salva e sincronizada!');
@@ -404,8 +404,8 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingEngineerPhoto(true);
     try {
-      const compressed = await compressImageFile(file, 800, 800, 0.85);
-      const updated = { ...contactForm, engineerPhotoUrl: compressed };
+      const compressed = await compressImageFile(file, 600, 600, 0.80);
+      const updated = { ...siteInfo, ...contactForm, engineerPhotoUrl: compressed };
       setContactForm(updated);
       await updateSiteInfo(updated);
       triggerToast('Foto do perfil do engenheiro salva e sincronizada em todos os dispositivos!');
@@ -2206,10 +2206,10 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             {aboutForm.heroImage && (
                               <button
                                 type="button"
-                                onClick={() => {
+                                onClick={async () => {
                                   const updated = { ...aboutForm, heroImage: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80' };
                                   setAboutForm(updated);
-                                  updateAboutInfo(updated);
+                                  await updateAboutInfo(updated);
                                   triggerToast('Imagem padrão do cabeçalho restaurada!');
                                 }}
                                 className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
@@ -2225,13 +2225,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           <label className="block text-[11px] font-bold text-slate-400 mb-1">
                             Ou informe a URL da Imagem:
                           </label>
-                          <input
-                            type="text"
-                            value={aboutForm.heroImage || ''}
-                            onChange={(e) => setAboutForm({ ...aboutForm, heroImage: e.target.value })}
-                            placeholder="https://images.unsplash.com/..."
-                            className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                          />
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={aboutForm.heroImage || ''}
+                              onChange={(e) => setAboutForm({ ...aboutForm, heroImage: e.target.value })}
+                              placeholder="https://images.unsplash.com/..."
+                              className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await updateAboutInfo(aboutForm);
+                                triggerToast('URL da imagem do cabeçalho Sobre salva!');
+                              }}
+                              className="px-3 py-2 bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-slate-950 font-bold text-xs rounded-xl transition-colors shrink-0"
+                            >
+                              Salvar URL
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -3781,7 +3793,12 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                       {contactForm.homeAboutImageUrl && (
                         <button
                           type="button"
-                          onClick={() => setContactForm({ ...contactForm, homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80' })}
+                          onClick={async () => {
+                            const updated = { ...contactForm, homeAboutImageUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=800&q=80' };
+                            setContactForm(updated);
+                            await updateSiteInfo(updated);
+                            triggerToast('Imagem da seção Quem Somos restaurada para a padrão!');
+                          }}
                           className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors"
                           title="Restaurar Imagem Padrão"
                         >
@@ -3796,13 +3813,25 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     <label className="block text-xs font-bold text-slate-300 mb-1">
                       Ou informe a URL da imagem da seção Quem Somos:
                     </label>
-                    <input
-                      type="text"
-                      value={contactForm.homeAboutImageUrl || ''}
-                      onChange={(e) => setContactForm({ ...contactForm, homeAboutImageUrl: e.target.value })}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={contactForm.homeAboutImageUrl || ''}
+                        onChange={(e) => setContactForm({ ...contactForm, homeAboutImageUrl: e.target.value })}
+                        placeholder="https://images.unsplash.com/..."
+                        className="flex-1 px-3.5 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await updateSiteInfo(contactForm);
+                          triggerToast('URL da imagem da seção Quem Somos salva!');
+                        }}
+                        className="px-3.5 py-2.5 bg-amber-500/20 text-amber-300 hover:bg-amber-500 hover:text-slate-950 font-bold text-xs rounded-xl transition-colors shrink-0"
+                      >
+                        Salvar URL
+                      </button>
+                    </div>
                   </div>
 
                 </div>

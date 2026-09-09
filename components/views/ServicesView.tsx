@@ -69,12 +69,12 @@ export const ServicesView: React.FC<ServicesViewProps> = ({ onOpenQuote }) => {
               </p>
             </div>
 
-            <div className="lg:col-span-4 hidden lg:block">
-              <div className="p-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group">
+            <div className="lg:col-span-4 block mt-4 lg:mt-0">
+              <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group shadow-lg">
                 <img
                   src={siteInfo.servicesHeroImage || "https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=600&q=80"}
                   alt="Engenharia Civil - Serviços"
-                  className="rounded-xl h-44 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                  className="rounded-xl h-44 sm:h-52 lg:h-44 w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
               </div>
             </div>

@@ -81,8 +81,11 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as SiteContactInfo;
-        setSiteInfo(data);
-        try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        setSiteInfo((prev) => {
+          const merged = { ...prev, ...data };
+          try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
       }
     }, (error) => console.error('Firestore siteInfo listener error:', error));
 
@@ -90,10 +93,40 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data() as AboutInfo;
-        setAboutInfo(data);
-        try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(data)); } catch (e) {}
+        setAboutInfo((prev) => {
+          const merged = { ...prev, ...data };
+          try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(merged)); } catch (e) {}
+          return merged;
+        });
       }
     }, (error) => console.error('Firestore aboutInfo listener error:', error));
+
+    // Dedicated listener for modular site images
+    const unsubImages = onSnapshot(doc(db, 'siteConfig', 'images'), (snapshot) => {
+      if (snapshot.exists()) {
+        const imgData = snapshot.data() as Record<string, any>;
+        if (imgData.homeAboutImageUrl || imgData.servicesHeroImage || imgData.heroImageUrl || imgData.engineerPhotoUrl) {
+          setSiteInfo((prev) => {
+            const updated: SiteContactInfo = { ...prev };
+            if (imgData.homeAboutImageUrl) updated.homeAboutImageUrl = imgData.homeAboutImageUrl;
+            if (imgData.servicesHeroImage) updated.servicesHeroImage = imgData.servicesHeroImage;
+            if (imgData.heroImageUrl) updated.heroImageUrl = imgData.heroImageUrl;
+            if (imgData.engineerPhotoUrl) updated.engineerPhotoUrl = imgData.engineerPhotoUrl;
+            try { localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+        if (imgData.aboutHeroImage || imgData.aboutOfficeImage) {
+          setAboutInfo((prev) => {
+            const updated: AboutInfo = { ...prev };
+            if (imgData.aboutHeroImage) updated.heroImage = imgData.aboutHeroImage;
+            if (imgData.aboutOfficeImage) updated.officeImage = imgData.aboutOfficeImage;
+            try { localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(updated)); } catch (e) {}
+            return updated;
+          });
+        }
+      }
+    }, (error) => console.warn('Firestore images listener error:', error));
 
     // 3. Projects collection
     const unsubProjects = onSnapshot(collection(db, 'projects'), (snapshot) => {
@@ -119,20 +152,42 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       unsubSiteInfo();
       unsubAboutInfo();
+      unsubImages();
       unsubProjects();
       unsubBlog();
       unsubServices();
     };
   }, []);
 
-  // Update operations - Writes to Firestore so all connected devices update live
+  // Update operations - Writes immediately to local cache and Firestore
   const updateSiteInfo = async (updated: Partial<SiteContactInfo>) => {
     const newInfo = { ...siteInfo, ...updated };
     setSiteInfo(newInfo);
     try {
+      localStorage.setItem(SITE_INFO_STORAGE_KEY, JSON.stringify(newInfo));
+    } catch (e) {
+      console.warn('LocalStorage save warning:', e);
+    }
+
+    try {
       await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
     } catch (e) {
       console.error('Failed to update site info in Firestore:', e);
+    }
+
+    // Also persist image fields into dedicated image document for high reliability
+    const imageFields: Record<string, string> = {};
+    if (newInfo.homeAboutImageUrl) imageFields.homeAboutImageUrl = newInfo.homeAboutImageUrl;
+    if (newInfo.servicesHeroImage) imageFields.servicesHeroImage = newInfo.servicesHeroImage;
+    if (newInfo.heroImageUrl) imageFields.heroImageUrl = newInfo.heroImageUrl;
+    if (newInfo.engineerPhotoUrl) imageFields.engineerPhotoUrl = newInfo.engineerPhotoUrl;
+
+    if (Object.keys(imageFields).length > 0) {
+      try {
+        await setDoc(doc(db, 'siteConfig', 'images'), cleanObj(imageFields), { merge: true });
+      } catch (err) {
+        console.warn('Failed to update dedicated images document:', err);
+      }
     }
   };
 
@@ -140,9 +195,28 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const newAbout = { ...aboutInfo, ...updated };
     setAboutInfo(newAbout);
     try {
+      localStorage.setItem(ABOUT_INFO_STORAGE_KEY, JSON.stringify(newAbout));
+    } catch (e) {
+      console.warn('LocalStorage save warning:', e);
+    }
+
+    try {
       await setDoc(doc(db, 'siteConfig', 'about'), cleanObj(newAbout), { merge: true });
     } catch (e) {
       console.error('Failed to update about info in Firestore:', e);
+    }
+
+    // Also persist about images into dedicated image document
+    const imageFields: Record<string, string> = {};
+    if (newAbout.heroImage) imageFields.aboutHeroImage = newAbout.heroImage;
+    if (newAbout.officeImage) imageFields.aboutOfficeImage = newAbout.officeImage;
+
+    if (Object.keys(imageFields).length > 0) {
+      try {
+        await setDoc(doc(db, 'siteConfig', 'images'), cleanObj(imageFields), { merge: true });
+      } catch (err) {
+        console.warn('Failed to update dedicated about images document:', err);
+      }
     }
   };
 

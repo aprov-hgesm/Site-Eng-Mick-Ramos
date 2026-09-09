@@ -50,12 +50,12 @@ export const AboutView: React.FC<AboutViewProps> = ({ onOpenQuote }) => {
             </div>
 
             {aboutInfo.heroImage && (
-              <div className="lg:col-span-4 hidden lg:block">
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group">
+              <div className="lg:col-span-4 block mt-4 lg:mt-0">
+                <div className="p-2.5 sm:p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl overflow-hidden group shadow-lg">
                   <img
                     src={aboutInfo.heroImage}
                     alt={siteInfo.brandName}
-                    className="rounded-xl h-40 w-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
+                    className="rounded-xl h-44 sm:h-52 lg:h-40 w-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
                 </div>
               </div>

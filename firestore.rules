@@ -18,7 +18,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null
-        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+        && (request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2' || request.auth.token.email == 'aprov1hgesm@gmail.com');
     }
 
     // 1. Negação total como regra padrão
