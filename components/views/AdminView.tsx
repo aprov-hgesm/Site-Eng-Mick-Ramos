@@ -22,25 +22,62 @@ import {
 } from 'firebase/auth';
 import { collection, onSnapshot, doc, deleteDoc } from 'firebase/firestore';
 
-// Helper to compress uploaded images to ultra-lightweight WebP/JPEG Base64
+// Helper to compress uploaded images to ultra-lightweight WebP/JPEG Base64 with high-capacity input support
 const compressImageFile = (
   file: File, 
-  maxWidth = 1000, 
-  maxHeight = 750, 
-  quality = 0.72,
+  maxWidth = 1400, 
+  maxHeight = 950, 
+  quality = 0.78,
   outputType?: string
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    if (!file.type.startsWith('image/')) {
-      reject(new Error('O arquivo selecionado não é uma imagem válida.'));
+    // Check if file is an image by MIME or extension
+    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(file.name);
+    if (!isImage) {
+      reject(new Error('O arquivo selecionado não é uma imagem válida (formatos aceitos: JPG, PNG, WEBP).'));
       return;
     }
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('Erro ao ler arquivo de imagem.'));
-    reader.onload = (evt) => {
+
+    if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+      reject(new Error('Formato HEIC/HEIF detectado. Por favor, selecione a foto em formato JPG ou PNG.'));
+      return;
+    }
+
+    // Safety limit on raw upload size: allow up to 45 MB photos
+    if (file.size > 45 * 1024 * 1024) {
+      reject(new Error('O arquivo excede o limite de 45MB. Escolha uma foto menor.'));
+      return;
+    }
+
+    // Use URL.createObjectURL for high capacity, speed and minimal memory footprint on large camera files
+    let objectUrl = '';
+    try {
+      objectUrl = URL.createObjectURL(file);
+    } catch {
+      // Fallback if createObjectURL is not available
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Erro ao ler arquivo de imagem.'));
+      reader.onload = (evt) => {
+        loadAndCompress(evt.target?.result as string, () => {});
+      };
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const cleanup = () => {
+      if (objectUrl) {
+        try { URL.revokeObjectURL(objectUrl); } catch {}
+      }
+    };
+
+    const loadAndCompress = (src: string, onDone: () => void) => {
       const img = new Image();
-      img.onerror = () => reject(new Error('Erro ao processar conteúdo da imagem.'));
+      img.onerror = () => {
+        onDone();
+        reject(new Error('Erro ao decodificar a imagem. Tente uma foto nos formatos JPG, PNG ou WEBP.'));
+      };
       img.onload = () => {
+        onDone();
         let width = img.width;
         let height = img.height;
 
@@ -59,27 +96,45 @@ const compressImageFile = (
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-          resolve(evt.target?.result as string);
+          reject(new Error('Erro ao criar contexto gráfico no navegador.'));
           return;
         }
 
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Prefer modern WebP or PNG (if transparent) for minimal payload size
-        const isTransparent = file.type === 'image/png' || file.type === 'image/webp';
-        const format = outputType || (isTransparent ? file.type : 'image/webp');
+        // For photographic content, prefer modern WebP or JPEG for optimal compression.
+        // Explicit PNG is only used if requested (e.g. for transparent logos).
+        const format = outputType || 'image/webp';
         let compressed = canvas.toDataURL(format, quality);
 
-        // Fallback to jpeg if browser returns unsupported format string
-        if (!compressed.startsWith('data:image/webp') && !isTransparent) {
+        // Fallback to jpeg if browser doesn't support webp encoding
+        if (!compressed.startsWith('data:image/webp') && format !== 'image/png') {
           compressed = canvas.toDataURL('image/jpeg', quality);
+        }
+
+        // Safety check: if string is still unexpectedly large (> 520KB), perform adaptive second pass
+        if (compressed.length > 520000) {
+          const secondaryCanvas = document.createElement('canvas');
+          secondaryCanvas.width = Math.round(width * 0.82);
+          secondaryCanvas.height = Math.round(height * 0.82);
+          const secCtx = secondaryCanvas.getContext('2d');
+          if (secCtx) {
+            secCtx.drawImage(canvas, 0, 0, secondaryCanvas.width, secondaryCanvas.height);
+            const recompressed = secondaryCanvas.toDataURL('image/webp', 0.72);
+            if (recompressed.startsWith('data:image/webp')) {
+              compressed = recompressed;
+            } else {
+              compressed = secondaryCanvas.toDataURL('image/jpeg', 0.72);
+            }
+          }
         }
 
         resolve(compressed);
       };
-      img.src = evt.target?.result as string;
+      img.src = src;
     };
-    reader.readAsDataURL(file);
+
+    loadAndCompress(objectUrl, cleanup);
   });
 };
 
@@ -292,14 +347,15 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHomeAboutImage(true);
     try {
-      const compressed = await compressImageFile(file, 1200, 800, 0.76);
+      // High-capacity compression: supports photos from smartphones and cameras of any megapixel count
+      const compressed = await compressImageFile(file, 1400, 950, 0.78);
       const updated = { ...siteInfo, ...contactForm, homeAboutImageUrl: compressed };
       setContactForm(updated);
       await updateSiteInfo(updated);
-      triggerToast('Imagem da seção Quem Somos salva e atualizada no site!');
+      triggerToast('Imagem da seção Quem Somos salva e atualizada com sucesso!');
     } catch (err: any) {
-      console.error(err);
-      triggerToast(err?.message || 'Erro ao carregar a imagem.');
+      console.error('Erro no upload Quem Somos:', err);
+      triggerToast(err?.message || 'Erro ao carregar a imagem da seção Quem Somos.');
     } finally {
       setIsUploadingHomeAboutImage(false);
     }
@@ -3792,8 +3848,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) processHomeAboutImageFile(file);
+                        e.target.value = '';
                       }}
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp,image/jpg"
                       className="hidden"
                     />
 
@@ -3807,6 +3864,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                       </p>
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         ou clique para escolher um arquivo do seu dispositivo
+                      </p>
+                      <p className="text-[10px] text-amber-400/80 font-medium mt-1">
+                        Capacidade expandida: suporta fotos de até 45MB (JPG, PNG, WebP)
                       </p>
                     </div>
 

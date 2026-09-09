@@ -137,6 +137,20 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }, (error) => console.warn('Firestore images listener error:', error));
 
+    // Dedicated listener for homeAboutImage document
+    const unsubHomeAbout = onSnapshot(doc(db, 'siteConfig', 'homeAboutImage'), (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        if (data?.homeAboutImageUrl) {
+          setSiteInfo((prev) => {
+            const updated = { ...prev, homeAboutImageUrl: data.homeAboutImageUrl };
+            safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
+            return updated;
+          });
+        }
+      }
+    }, (error) => console.warn('Firestore homeAboutImage listener error:', error));
+
     // 3. Projects collection
     const unsubProjects = onSnapshot(collection(db, 'projects'), (snapshot) => {
       const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
@@ -162,6 +176,7 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
       unsubSiteInfo();
       unsubAboutInfo();
       unsubImages();
+      unsubHomeAbout();
       unsubProjects();
       unsubBlog();
       unsubServices();
@@ -174,16 +189,20 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSiteInfo(newInfo);
     safeSetLocalStorage(SITE_INFO_STORAGE_KEY, newInfo);
 
-    try {
-      await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
-    } catch (e) {
-      console.error('Failed to update site info in Firestore:', e);
-      throw e;
+    // 1. Dedicated save for homeAboutImageUrl to ensure it has its own 1MB quota
+    if (newInfo.homeAboutImageUrl) {
+      try {
+        await setDoc(doc(db, 'siteConfig', 'homeAboutImage'), { homeAboutImageUrl: newInfo.homeAboutImageUrl }, { merge: true });
+      } catch (err) {
+        console.warn('Failed to save to dedicated homeAboutImage document:', err);
+      }
     }
 
-    // Also persist image fields into dedicated image document for high reliability
+    // 2. Also persist image fields into dedicated images document
     const imageFields: Record<string, string> = {};
-    if (newInfo.homeAboutImageUrl) imageFields.homeAboutImageUrl = newInfo.homeAboutImageUrl;
+    if (newInfo.homeAboutImageUrl && !newInfo.homeAboutImageUrl.startsWith('data:image/')) {
+      imageFields.homeAboutImageUrl = newInfo.homeAboutImageUrl;
+    }
     if (newInfo.servicesHeroImage) imageFields.servicesHeroImage = newInfo.servicesHeroImage;
     if (newInfo.heroImageUrl) imageFields.heroImageUrl = newInfo.heroImageUrl;
     if (newInfo.engineerPhotoUrl) imageFields.engineerPhotoUrl = newInfo.engineerPhotoUrl;
@@ -193,6 +212,27 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await setDoc(doc(db, 'siteConfig', 'images'), cleanObj(imageFields), { merge: true });
       } catch (err) {
         console.warn('Failed to update dedicated images document:', err);
+      }
+    }
+
+    // 3. Save contact info. Fallback gracefully if document size exceeds limit
+    try {
+      await setDoc(doc(db, 'siteConfig', 'contact'), cleanObj(newInfo), { merge: true });
+    } catch (e: any) {
+      console.warn('Direct contact doc save issue, falling back to lightweight contact doc:', e);
+      const lightweightContact: Record<string, any> = {};
+      const fullContact = cleanObj(newInfo) as Record<string, any>;
+      for (const [key, val] of Object.entries(fullContact)) {
+        if (typeof val === 'string' && val.startsWith('data:image/') && val.length > 50000) {
+          continue; // Image is preserved in dedicated doc!
+        }
+        lightweightContact[key] = val;
+      }
+      try {
+        await setDoc(doc(db, 'siteConfig', 'contact'), lightweightContact, { merge: true });
+      } catch (fallbackError) {
+        console.error('Failed to update lightweight site info in Firestore:', fallbackError);
+        throw fallbackError;
       }
     }
   };
