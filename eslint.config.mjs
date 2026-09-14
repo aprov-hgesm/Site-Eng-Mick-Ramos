@@ -1,16 +1,17 @@
-import { defineConfig } from "eslint/config";
-import next from "eslint-config-next";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
+import nextTs from 'eslint-config-next/typescript';
 
 export default defineConfig([
-  {
-    ignores: [".next/**", ".next-dev/**", "node_modules/**", "dist/**"],
-  },
-  {
-    extends: [...next],
-  },
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([
+    '.next/**',
+    '.next-dev/**',
+    'out/**',
+    'build/**',
+    'dist/**',
+    'node_modules/**',
+    'next-env.d.ts',
+  ]),
 ]);
