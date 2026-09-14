@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { 
-  Calendar, Clock, User, Share2, ArrowLeft, ArrowRight, MessageCircle, 
-  AlertTriangle, ShieldAlert, CheckCircle2, Copy 
+  Calendar, Clock, User, ArrowLeft, ArrowRight, 
+  AlertTriangle, ShieldAlert, CheckCircle2
 } from 'lucide-react';
 import { BLOG_CATEGORIES, SITE_INFO } from '@/lib/siteData';
 import { useSiteData } from '@/lib/SiteContext';
@@ -53,18 +53,6 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
       };
 
   const relatedPosts = blogPosts.filter((p) => p.id !== post.id).slice(0, 3);
-
-  const handleCopyLink = () => {
-    if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copiado para a área de transferência!');
-    }
-  };
-
-  const handleShareWhatsApp = () => {
-    const text = `Confira este artigo técnico da MR Engenharia: *${post.title}*`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
 
   return (
     <div className="space-y-0 bg-white font-sans">
@@ -168,29 +156,6 @@ export const ArticleDetailView: React.FC<ArticleDetailViewProps> = ({
               <p className="pt-2 text-slate-700 font-medium">
                 {contentObj.conclusion}
               </p>
-            </div>
-
-            {/* Share Buttons Strip */}
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-4">
-              <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Compartilhe este artigo:
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleShareWhatsApp}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center gap-1.5"
-                >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
-                </button>
-                <button
-                  onClick={handleCopyLink}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copiar Link</span>
-                </button>
-              </div>
             </div>
 
             {/* Previous / Next Article Nav */}
