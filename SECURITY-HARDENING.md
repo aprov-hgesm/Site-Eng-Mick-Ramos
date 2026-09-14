@@ -14,7 +14,7 @@ Este documento registra as proteções adicionadas sem alterar o comportamento f
 - Logs de erro do Firebase deixaram de incluir metadados de sessão/autenticação.
 - Firebase App Check preparado no cliente por `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`, sem bloquear ambientes enquanto a chave não estiver configurada.
 - `firebase.json` e `.firebaserc` adicionados para tornar explícito o projeto/banco das regras.
-- Security CI, CodeQL, Dependency Review e Dependabot adicionados.
+- Security CI, CodeQL e Dependabot adicionados.
 - `SECURITY.md` adicionado para política de reporte e gestão de segredos.
 
 ## Validação automática
@@ -38,6 +38,7 @@ As ações abaixo não devem ser simuladas pelo código nem ativadas sem acesso 
 4. Aplicar restrição por domínio/origem e limites antiabuso no EmailJS, mantendo o formulário atual funcional.
 5. Configurar Firewall/Bot Protection/rate limiting no projeto Vercel responsável por `site-eng-mick-ramos.vercel.app`.
 6. Proteger a branch `main` com ruleset/branch protection exigindo os checks de CI e revisão antes do merge.
+7. Habilitar o Dependency Graph do GitHub; depois disso, o Dependency Review poderá ser adotado como check adicional de pull request. Enquanto o recurso estiver desabilitado, o Security CI continua bloqueando vulnerabilidades de severidade alta com `bun audit`.
 
 ## Observação
 
