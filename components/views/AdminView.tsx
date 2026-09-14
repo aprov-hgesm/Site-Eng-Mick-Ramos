@@ -165,7 +165,6 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
 
   // Admin credentials for Firebase Authentication authorization
   const ADMIN_UID = 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
-  const ADMIN_EMAIL = 'aprov1hgesm@gmail.com';
 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -180,7 +179,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
       auth,
       async (user) => {
         try {
-          if (user && (user.uid === ADMIN_UID || user.email === ADMIN_EMAIL)) {
+          if (user && user.uid === ADMIN_UID) {
             setIsAuthenticated(true);
           } else {
             setIsAuthenticated(false);
@@ -365,17 +364,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHeaderLogo(true);
     try {
-      let resultUrl = '';
-      if (file.type === 'image/svg+xml') {
-        resultUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      } else {
-        resultUrl = await compressImageFile(file, 800, 800, 0.9);
-      }
+      // Rasterize every accepted logo format (including SVG) before persistence.
+      // This preserves SVG upload support without storing active XML/SVG payloads.
+      const resultUrl = await compressImageFile(file, 800, 800, 0.9);
       const updated = { ...contactForm, headerLogoUrl: resultUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
@@ -392,17 +383,9 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingFooterLogo(true);
     try {
-      let resultUrl = '';
-      if (file.type === 'image/svg+xml') {
-        resultUrl = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
-      } else {
-        resultUrl = await compressImageFile(file, 800, 800, 0.9);
-      }
+      // Rasterize every accepted logo format (including SVG) before persistence.
+      // This preserves SVG upload support without storing active XML/SVG payloads.
+      const resultUrl = await compressImageFile(file, 800, 800, 0.9);
       const updated = { ...contactForm, footerLogoUrl: resultUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
@@ -710,7 +693,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     try {
       await setPersistence(auth, browserSessionPersistence);
       const credential = await signInWithEmailAndPassword(auth, emailInput.trim(), passwordInput);
-      if (credential.user.uid === ADMIN_UID || credential.user.email === ADMIN_EMAIL) {
+      if (credential.user.uid === ADMIN_UID) {
         setIsAuthenticated(true);
         setPasswordInput('');
       } else {
