@@ -42,11 +42,11 @@ jobs:
       - name: TypeScript
         run: bun run typecheck
 
-      - name: ESLint
-        run: bun run lint
-
       - name: Build
         run: bun run build
 
       - name: Dependency audit
         run: bun audit --audit-level=high
+
+      - name: ESLint
+        run: bun run lint
