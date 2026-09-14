@@ -20,6 +20,61 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Apply one-time source hardening
+        if: github.ref == 'refs/heads/security/hardening-2026-09-14'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('components/views/AdminView.tsx')
+          source = path.read_text(encoding='utf-8')
+          original = source
+
+          source = source.replace("  const ADMIN_EMAIL = 'aprov1hgesm@gmail.com';\n", '')
+          source = source.replace(
+              "if (user && (user.uid === ADMIN_UID || user.email === ADMIN_EMAIL)) {",
+              "if (user && user.uid === ADMIN_UID) {",
+          )
+          source = source.replace(
+              "if (credential.user.uid === ADMIN_UID || credential.user.email === ADMIN_EMAIL) {",
+              "if (credential.user.uid === ADMIN_UID) {",
+          )
+
+          svg_block = """      let resultUrl = '';
+                if (file.type === 'image/svg+xml') {
+                  resultUrl = await new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                  });
+                } else {
+                  resultUrl = await compressImageFile(file, 800, 800, 0.9);
+                }
+          """
+          safe_block = """      // Rasterize every accepted logo format (including SVG) before persistence.
+                // This preserves SVG upload support without storing active XML/SVG payloads.
+                const resultUrl = await compressImageFile(file, 800, 800, 0.9);
+          """
+
+          matches = source.count(svg_block)
+          if matches not in (0, 2):
+              raise SystemExit(f'Unexpected SVG upload block count: {matches}')
+          if matches == 2:
+              source = source.replace(svg_block, safe_block)
+
+          if source != original:
+              path.write_text(source, encoding='utf-8')
+          PY
+
+          if ! git diff --quiet -- components/views/AdminView.tsx; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add components/views/AdminView.tsx
+            git commit -m "security: harden admin authorization and SVG uploads"
+            git push
+          fi
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
