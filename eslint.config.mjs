@@ -1,16 +1,29 @@
-import { defineConfig } from "eslint/config";
-import next from "eslint-config-next";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { FlatCompat } from '@eslint/eslintrc';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const compat = new FlatCompat({
+  baseDirectory: import.meta.dirname,
+});
 
-export default defineConfig([
+const eslintConfig = [
+  ...compat.extends('next/core-web-vitals', 'next/typescript'),
   {
-    ignores: [".next/**", ".next-dev/**", "node_modules/**", "dist/**"],
+    rules: {
+      // Legacy code already uses explicit any in data-mapping/error-handling paths.
+      // Keep it visible without turning pre-existing typing debt into a deployment blocker.
+      '@typescript-eslint/no-explicit-any': 'warn',
+    },
   },
   {
-    extends: [...next],
+    ignores: [
+      '.next/**',
+      '.next-dev/**',
+      'out/**',
+      'build/**',
+      'dist/**',
+      'node_modules/**',
+      'next-env.d.ts',
+    ],
   },
-]);
+];
+
+export default eslintConfig;

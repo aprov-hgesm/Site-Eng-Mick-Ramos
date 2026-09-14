@@ -16,9 +16,19 @@ service cloud.firestore {
       return data[field] is string && data[field].size() <= maxLen;
     }
 
+    function isNonEmptyString(data, field, maxLen) {
+      return isValidString(data, field, maxLen) && data[field].size() > 0;
+    }
+
     function isAdmin() {
+      // A autorização é vinculada somente ao UID imutável da conta Firebase.
+      // O e-mail não é usado como fator de autorização.
       return request.auth != null
-        && (request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2' || request.auth.token.email == 'aprov1hgesm@gmail.com');
+        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+    }
+
+    function hasExpectedTargetEmail(data) {
+      return data.targetEmail == 'engcivilmickramos@gmail.com';
     }
 
     // 1. Negação total como regra padrão
@@ -42,57 +52,64 @@ service cloud.firestore {
       allow create, update, delete: if isAdmin();
     }
 
+    // Somente documentos de configuração explicitamente públicos podem ser lidos.
+    // Isso evita que um futuro documento interno em siteConfig seja exposto por engano.
     match /siteConfig/{configId} {
-      allow read: if true;
+      allow read: if configId == 'contact'
+                  || configId == 'about'
+                  || configId == 'images'
+                  || configId == 'homeAboutImage';
       allow create, update, delete: if isAdmin();
     }
 
-    // 3. Solicitações de Orçamento (quoteRequests): somente criação pública validada
+    // 3. Solicitações de Orçamento (quoteRequests): somente criação pública validada.
+    // App Check deve ser habilitado no console Firebase para bloquear clientes não legítimos.
     match /quoteRequests/{requestId} {
       allow read, update, delete: if isAdmin();
       allow create: if hasOnlyAllowedFields(request.resource.data, [
-                      'name', 'phone', 'email', 'service', 'propertyType', 
-                      'areaSize', 'location', 'details', 'targetEmail', 
+                      'name', 'phone', 'email', 'service', 'propertyType',
+                      'areaSize', 'location', 'details', 'targetEmail',
                       'createdAt', 'status'
                     ])
                     && hasAllRequiredFields(request.resource.data, [
-                      'name', 'phone', 'email', 'service', 'propertyType', 
-                      'areaSize', 'location', 'details', 'targetEmail', 
+                      'name', 'phone', 'email', 'service', 'propertyType',
+                      'areaSize', 'location', 'details', 'targetEmail',
                       'createdAt', 'status'
                     ])
-                    && isValidString(request.resource.data, 'name', 120)
-                    && isValidString(request.resource.data, 'phone', 30)
+                    && isNonEmptyString(request.resource.data, 'name', 120)
+                    && isNonEmptyString(request.resource.data, 'phone', 30)
                     && isValidString(request.resource.data, 'email', 254)
-                    && isValidString(request.resource.data, 'service', 150)
-                    && isValidString(request.resource.data, 'propertyType', 80)
+                    && isNonEmptyString(request.resource.data, 'service', 150)
+                    && isNonEmptyString(request.resource.data, 'propertyType', 80)
                     && isValidString(request.resource.data, 'areaSize', 30)
-                    && isValidString(request.resource.data, 'location', 150)
+                    && isNonEmptyString(request.resource.data, 'location', 150)
                     && isValidString(request.resource.data, 'details', 3000)
-                    && isValidString(request.resource.data, 'targetEmail', 254)
-                    && isValidString(request.resource.data, 'createdAt', 40)
+                    && isNonEmptyString(request.resource.data, 'targetEmail', 254)
+                    && isNonEmptyString(request.resource.data, 'createdAt', 40)
+                    && hasExpectedTargetEmail(request.resource.data)
                     && request.resource.data.status == 'nova';
     }
 
-    // 4. Mensagens de Contato (contactMessages): somente criação pública validada
+    // 4. Mensagens de Contato (contactMessages): somente criação pública validada.
     match /contactMessages/{messageId} {
       allow read, update, delete: if isAdmin();
       allow create: if hasOnlyAllowedFields(request.resource.data, [
-                      'name', 'email', 'whatsapp', 'subject', 'message', 
+                      'name', 'email', 'whatsapp', 'subject', 'message',
                       'targetEmail', 'createdAt', 'status'
                     ])
                     && hasAllRequiredFields(request.resource.data, [
-                      'name', 'email', 'whatsapp', 'subject', 'message', 
+                      'name', 'email', 'whatsapp', 'subject', 'message',
                       'targetEmail', 'createdAt', 'status'
                     ])
-                    && isValidString(request.resource.data, 'name', 120)
-                    && isValidString(request.resource.data, 'email', 254)
-                    && isValidString(request.resource.data, 'whatsapp', 30)
-                    && isValidString(request.resource.data, 'subject', 120)
-                    && isValidString(request.resource.data, 'message', 3000)
-                    && isValidString(request.resource.data, 'targetEmail', 254)
-                    && isValidString(request.resource.data, 'createdAt', 40)
+                    && isNonEmptyString(request.resource.data, 'name', 120)
+                    && isNonEmptyString(request.resource.data, 'email', 254)
+                    && isNonEmptyString(request.resource.data, 'whatsapp', 30)
+                    && isNonEmptyString(request.resource.data, 'subject', 120)
+                    && isNonEmptyString(request.resource.data, 'message', 3000)
+                    && isNonEmptyString(request.resource.data, 'targetEmail', 254)
+                    && isNonEmptyString(request.resource.data, 'createdAt', 40)
+                    && hasExpectedTargetEmail(request.resource.data)
                     && request.resource.data.status == 'nova';
     }
   }
 }
-
