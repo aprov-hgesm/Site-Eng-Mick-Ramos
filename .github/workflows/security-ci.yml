@@ -20,6 +20,16 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
+
+      - name: High-confidence secret history scan
+        shell: bash
+        run: |
+          PATTERN='-----BEGIN (RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|ASIA[0-9A-Z]{16}|sk_live_[0-9A-Za-z]{20,}|xox[baprs]-[0-9A-Za-z-]{20,}'
+          if git log --all -p --no-ext-diff -- . | grep -Eq -- "$PATTERN"; then
+            echo '::error::Potential high-confidence secret pattern found in Git history. Rotate the credential if real, purge it from history, and re-run the workflow.'
+            exit 1
+          fi
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
