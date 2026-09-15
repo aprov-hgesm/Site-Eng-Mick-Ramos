@@ -18,6 +18,7 @@ export const clientConfig = {
   contact: {
     email: withFallback(process.env.NEXT_PUBLIC_CLIENT_EMAIL, 'engcivilmickramos@gmail.com'),
     phone: withFallback(process.env.NEXT_PUBLIC_CLIENT_PHONE, '(86) 99927-0261'),
+    whatsappDisplay: withFallback(process.env.NEXT_PUBLIC_CLIENT_WHATSAPP_DISPLAY, '+55 86 99927-0261'),
     whatsappUrl: withFallback(
       process.env.NEXT_PUBLIC_CLIENT_WHATSAPP_URL,
       'https://wa.me/5586999270261?text=Ol%C3%A1%2C%20gostaria%20de%20solicitar%20um%20or%C3%A7amento%20de%20engenharia.',
