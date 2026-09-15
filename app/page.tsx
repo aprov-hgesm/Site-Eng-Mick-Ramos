@@ -38,9 +38,7 @@ export default function Page() {
 
   return (
     <SiteProvider>
-      <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
-        
-        {/* Header */}
+      <div className="site-shell">
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}
@@ -49,7 +47,6 @@ export default function Page() {
           setSelectedArticleId={setSelectedArticleId}
         />
 
-        {/* Main View Area */}
         <main className="flex-1">
           {activeTab === 'inicio' && (
             <HomeView
@@ -109,13 +106,11 @@ export default function Page() {
           )}
         </main>
 
-        {/* Footer */}
         <Footer
           setActiveTab={setActiveTab}
           onOpenQuote={() => handleOpenQuote()}
         />
 
-        {/* Interactive Modals */}
         <QuoteModal
           isOpen={isQuoteOpen}
           onClose={() => setIsQuoteOpen(false)}
@@ -127,7 +122,6 @@ export default function Page() {
           onClose={() => setSelectedProject(null)}
           onOpenQuote={() => handleOpenQuote()}
         />
-
       </div>
     </SiteProvider>
   );
