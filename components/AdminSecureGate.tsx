@@ -30,10 +30,25 @@ const errorCode = (error: unknown) =>
 
 const otp = (value: string) => value.replace(/\D/g, '').slice(0, 6);
 
+const hasTotpSignInClaim = async (candidate: User) => {
+  const tokenResult = await candidate.getIdTokenResult();
+  const firebaseClaim = tokenResult.claims.firebase;
+
+  if (typeof firebaseClaim !== 'object' || firebaseClaim === null) {
+    return false;
+  }
+
+  return (
+    (firebaseClaim as { sign_in_second_factor?: unknown }).sign_in_second_factor ===
+    TotpMultiFactorGenerator.FACTOR_ID
+  );
+};
+
 export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTab }) => {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [totpActive, setTotpActive] = useState(false);
+  const [mfaSessionVerified, setMfaSessionVerified] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,20 +59,36 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
 
-  const syncUser = (nextUser: User | null) => {
+  const syncUser = async (nextUser: User | null) => {
     setUser(nextUser);
     setEmailVerified(Boolean(nextUser?.emailVerified));
-    setTotpActive(Boolean(nextUser && multiFactor(nextUser).enrolledFactors.some((f) => f.factorId === TotpMultiFactorGenerator.FACTOR_ID)));
+
+    if (!nextUser) {
+      setTotpActive(false);
+      setMfaSessionVerified(false);
+      return;
+    }
+
+    const enrolled = multiFactor(nextUser).enrolledFactors.some(
+      (factor) => factor.factorId === TotpMultiFactorGenerator.FACTOR_ID,
+    );
+    setTotpActive(enrolled);
+
+    try {
+      setMfaSessionVerified(enrolled && (await hasTotpSignInClaim(nextUser)));
+    } catch {
+      setMfaSessionVerified(false);
+    }
   };
 
   useEffect(() => {
     return onAuthStateChanged(auth, async (nextUser) => {
       if (nextUser && nextUser.uid !== ADMIN_UID) {
         await signOut(auth);
-        syncUser(null);
+        await syncUser(null);
         setMessage('Usuário não autorizado.');
       } else {
-        syncUser(nextUser);
+        await syncUser(nextUser);
       }
       setReady(true);
     });
@@ -75,13 +106,13 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
         await signOut(auth);
         setMessage('Usuário não autorizado.');
       } else {
-        syncUser(credential.user);
+        await syncUser(credential.user);
         setPassword('');
       }
     } catch (error: unknown) {
       if (errorCode(error) === 'auth/multi-factor-auth-required') {
         const nextResolver = getMultiFactorResolver(auth, error as MultiFactorError);
-        if (nextResolver.hints.some((h) => h.factorId === TotpMultiFactorGenerator.FACTOR_ID)) {
+        if (nextResolver.hints.some((hint) => hint.factorId === TotpMultiFactorGenerator.FACTOR_ID)) {
           setResolver(nextResolver);
           setPassword('');
           setMessage('Senha validada. Informe o código do autenticador.');
@@ -99,7 +130,7 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
   const finishLogin = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!resolver || loginCode.length !== 6 || busy) return;
-    const hint = resolver.hints.find((h) => h.factorId === TotpMultiFactorGenerator.FACTOR_ID);
+    const hint = resolver.hints.find((factor) => factor.factorId === TotpMultiFactorGenerator.FACTOR_ID);
     if (!hint) return;
     setBusy(true);
     setMessage('');
@@ -110,7 +141,8 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
         await signOut(auth);
         setMessage('Usuário não autorizado.');
       } else {
-        syncUser(credential.user);
+        await credential.user.getIdToken(true);
+        await syncUser(credential.user);
         setResolver(null);
         setLoginCode('');
       }
@@ -156,7 +188,7 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
     } catch (error: unknown) {
       if (errorCode(error) === 'auth/requires-recent-login') {
         await signOut(auth);
-        syncUser(null);
+        await syncUser(null);
         setMessage('Faça login novamente antes de cadastrar o autenticador.');
       } else {
         setMessage('Não foi possível iniciar o cadastro do TOTP.');
@@ -174,10 +206,11 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
     try {
       const assertion = TotpMultiFactorGenerator.assertionForEnrollment(secret, enrollCode);
       await multiFactor(user).enroll(assertion, 'Google Authenticator');
-      await user.getIdToken(true);
-      setTotpActive(true);
       setSecret(null);
       setEnrollCode('');
+      await signOut(auth);
+      await syncUser(null);
+      setMessage('MFA cadastrado. Entre novamente e confirme o código do autenticador para abrir o painel.');
     } catch {
       setMessage('Código inválido. Use o código atual do aplicativo autenticador.');
     } finally {
@@ -247,6 +280,29 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
           )}
           {message && <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 text-xs text-center text-slate-300">{message}</div>}
           <button onClick={() => signOut(auth)} className="w-full p-2 text-xs text-slate-500">Sair</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!mfaSessionVerified) {
+    return (
+      <div className="min-h-[70vh] bg-slate-950 flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md p-8 rounded-2xl bg-slate-950 border border-amber-500/30 space-y-5 text-white text-center">
+          <h1 className="text-2xl font-bold">Segundo fator necessário</h1>
+          <p className="text-sm text-slate-300">
+            Esta sessão não contém a confirmação TOTP exigida para operações administrativas.
+          </p>
+          <button
+            onClick={async () => {
+              await signOut(auth);
+              await syncUser(null);
+              setMessage('Entre novamente e informe o código do autenticador.');
+            }}
+            className="w-full p-3 rounded-xl bg-amber-500 text-slate-950 font-bold"
+          >
+            FAZER LOGIN COM MFA
+          </button>
         </div>
       </div>
     );
