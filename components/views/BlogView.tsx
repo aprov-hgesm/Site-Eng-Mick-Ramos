@@ -29,6 +29,11 @@ export const BlogView: React.FC<BlogViewProps> = ({
 
   const popularPosts = blogPosts.slice(0, 5);
 
+  const categoryCounts = blogPosts.reduce<Record<string, number>>((counts, post) => {
+    counts[post.category] = (counts[post.category] || 0) + 1;
+    return counts;
+  }, {});
+
   return (
     <div className="space-y-0 bg-white font-sans">
 
@@ -210,7 +215,7 @@ export const BlogView: React.FC<BlogViewProps> = ({
                     >
                       <span>{c.label}</span>
                       <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono text-[10px]">
-                        {c.count}
+                        {categoryCounts[c.id] ?? 0}
                       </span>
                     </button>
                   </li>
