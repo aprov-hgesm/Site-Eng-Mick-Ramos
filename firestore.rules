@@ -21,10 +21,15 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // A autorização é vinculada somente ao UID imutável da conta Firebase.
-      // O e-mail não é usado como fator de autorização.
+      // A autorização administrativa exige simultaneamente:
+      // 1) o UID imutável da conta administradora;
+      // 2) e-mail verificado;
+      // 3) sessão autenticada usando TOTP como segundo fator.
+      // Assim, uma sessão obtida apenas com a senha não recebe acesso administrativo.
       return request.auth != null
-        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2'
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_second_factor == 'totp';
     }
 
     function hasExpectedTargetEmail(data) {
@@ -63,7 +68,7 @@ service cloud.firestore {
     }
 
     // 3. Solicitações de Orçamento (quoteRequests): somente criação pública validada.
-    // App Check deve ser habilitado no console Firebase para bloquear clientes não legítimos.
+    // O enforcement do App Check é aplicado no serviço e complementa estas regras.
     match /quoteRequests/{requestId} {
       allow read, update, delete: if isAdmin();
       allow create: if hasOnlyAllowedFields(request.resource.data, [
