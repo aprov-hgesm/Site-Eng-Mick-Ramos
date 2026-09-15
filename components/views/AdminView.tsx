@@ -31,15 +31,12 @@ const compressImageFile = (
   outputType?: string
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
-    // Check if file is an image by MIME or extension
-    const isImage = file.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(file.name);
-    if (!isImage) {
-      reject(new Error('O arquivo selecionado não é uma imagem válida (formatos aceitos: JPG, PNG, WEBP).'));
-      return;
-    }
-
-    if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
-      reject(new Error('Formato HEIC/HEIF detectado. Por favor, selecione a foto em formato JPG ou PNG.'));
+    // Security: only allow raster formats that are re-encoded before persistence.
+    // Require both a trusted MIME type and a matching extension to reduce spoofed uploads.
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const hasAllowedExtension = /\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!allowedMimeTypes.has(file.type) || !hasAllowedExtension) {
+      reject(new Error('Formato de imagem não permitido. Use somente JPG, PNG ou WEBP.'));
       return;
     }
 
@@ -364,8 +361,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingHeaderLogo(true);
     try {
-      // Rasterize every accepted logo format (including SVG) before persistence.
-      // This preserves SVG upload support without storing active XML/SVG payloads.
+      // Accept only raster formats and re-encode them before persistence.
       const resultUrl = await compressImageFile(file, 800, 800, 0.9);
       const updated = { ...contactForm, headerLogoUrl: resultUrl };
       setContactForm(updated);
@@ -383,8 +379,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     if (!file) return;
     setIsUploadingFooterLogo(true);
     try {
-      // Rasterize every accepted logo format (including SVG) before persistence.
-      // This preserves SVG upload support without storing active XML/SVG payloads.
+      // Accept only raster formats and re-encode them before persistence.
       const resultUrl = await compressImageFile(file, 800, 800, 0.9);
       const updated = { ...contactForm, footerLogoUrl: resultUrl };
       setContactForm(updated);
@@ -1624,7 +1619,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                         const file = e.target.files?.[0];
                         if (file) processServicesHeroFile(file);
                       }}
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       className="hidden"
                     />
 
@@ -1938,7 +1933,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           const file = e.target.files?.[0];
                           if (file) processEngineerPhotoFile(file);
                         }}
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         className="hidden"
                       />
 
@@ -2245,7 +2240,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                               const file = e.target.files?.[0];
                               if (file) processAboutHeroFile(file);
                             }}
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
                           />
 
@@ -2413,7 +2408,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                               const file = e.target.files?.[0];
                               if (file) processAboutOfficeFile(file);
                             }}
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
                           />
 
@@ -2939,7 +2934,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                               const file = e.target.files?.[0];
                               if (file) processHeaderLogoFile(file);
                             }}
-                            accept="image/*,.svg"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
                           />
                           <div className="flex flex-wrap items-center gap-2">
@@ -2965,7 +2960,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             )}
                           </div>
                           <p className="text-[10px] text-slate-400">
-                            Formatos suportados: PNG, SVG, WEBP, JPG (Ideal fundo transparente)
+                            Formatos suportados: PNG, WEBP, JPG (Ideal fundo transparente)
                           </p>
                         </div>
                       </div>
@@ -3020,7 +3015,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                               const file = e.target.files?.[0];
                               if (file) processFooterLogoFile(file);
                             }}
-                            accept="image/*,.svg"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
                           />
                           <div className="flex flex-wrap items-center gap-2">
@@ -3056,7 +3051,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                             )}
                           </div>
                           <p className="text-[10px] text-slate-400">
-                            Formatos suportados: PNG, SVG, WEBP, JPG
+                            Formatos suportados: PNG, WEBP, JPG
                           </p>
                         </div>
                       </div>
@@ -3699,7 +3694,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                         const file = e.target.files?.[0];
                         if (file) processHeroImageFile(file);
                       }}
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       className="hidden"
                     />
 
@@ -4055,7 +4050,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                     ref={projectFileInputRef}
                     type="file"
                     multiple
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleProjectFilesUpload}
                     className="hidden"
                   />
@@ -4273,7 +4268,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                   <input
                     ref={blogFileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/webp"
                     onChange={handleBlogFileUpload}
                     className="hidden"
                   />
@@ -4547,7 +4542,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                           const file = e.target.files?.[0];
                           if (file) processServiceImageFile(file);
                         }}
-                        accept="image/*"
+                        accept="image/jpeg,image/png,image/webp"
                         className="hidden"
                       />
 

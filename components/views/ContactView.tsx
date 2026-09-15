@@ -22,6 +22,7 @@ export const ContactView: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'idle' | 'sent' | 'failed'>('idle');
 
   const targetEmail = 'engcivilmickramos@gmail.com';
 
@@ -64,6 +65,7 @@ export const ContactView: React.FC = () => {
 
     setLoading(true);
     setErrorMessage(null);
+    setEmailDeliveryStatus('idle');
 
     try {
       // 1. Save directly to Firestore database
@@ -102,10 +104,14 @@ export const ContactView: React.FC = () => {
           }),
         });
 
-        if (!response.ok) {
+        if (response.ok) {
+          setEmailDeliveryStatus('sent');
+        } else {
+          setEmailDeliveryStatus('failed');
           console.warn('Falha no envio via EmailJS. Mensagem já gravada no Firestore.');
         }
       } catch (emailError: unknown) {
+        setEmailDeliveryStatus('failed');
         console.warn('Erro ao tentar envio direto via EmailJS:', emailError);
       }
     } catch (dbErr: unknown) {
@@ -205,6 +211,22 @@ export const ContactView: React.FC = () => {
                 <p className="text-xs text-slate-600 max-w-md mx-auto">
                   Obrigado, <strong className="text-slate-900">{name}</strong>. Sua mensagem foi recebida e registrada com sucesso.
                 </p>
+
+                {emailDeliveryStatus === 'sent' && (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 max-w-lg mx-auto">
+                    Solicitação registrada e notificação automática por e-mail enviada com sucesso.
+                  </div>
+                )}
+                {emailDeliveryStatus === 'failed' && (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 max-w-lg mx-auto">
+                    Sua mensagem está salva no sistema. A notificação automática por e-mail não pôde ser confirmada, mas o pedido não foi perdido.
+                  </div>
+                )}
+                {emailDeliveryStatus === 'idle' && loading && (
+                  <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 max-w-lg mx-auto">
+                    Mensagem registrada. Confirmando a notificação automática por e-mail...
+                  </div>
+                )}
 
                 <div className="p-4 bg-amber-50 rounded-xl border border-amber-200 text-left space-y-2 max-w-lg mx-auto text-xs text-slate-700">
                   <div className="font-bold text-slate-900 text-sm border-b border-amber-200 pb-1 mb-2 flex justify-between items-center">
