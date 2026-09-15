@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { auth } from '@/lib/firebase';
+import { clientConfig } from '@/config/client.config';
 import { AdminView } from '@/components/views/AdminView';
 import {
   browserSessionPersistence,
@@ -16,7 +17,7 @@ import {
 } from 'firebase/auth';
 import type { MultiFactorError, MultiFactorResolver, TotpSecret, User } from 'firebase/auth';
 
-const ADMIN_UID = 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+const ADMIN_UID = clientConfig.admin.uid;
 type AdminTab = 'inicio' | 'sobre' | 'servicos' | 'projetos' | 'blog' | 'contato';
 
 interface AdminSecureGateProps {
@@ -272,7 +273,7 @@ export const AdminSecureGate: React.FC<AdminSecureGateProps> = ({ onNavigateToTa
               <div className="p-3 rounded-xl bg-slate-900 border border-slate-700 font-mono text-sm text-amber-300 break-all select-all">{secret.secretKey}</div>
               <div className="text-xs text-slate-300 space-y-1">
                 <p>No Google Authenticator, toque em <strong>+</strong> → <strong>Inserir chave de configuração</strong>.</p>
-                <p>Nome: <strong>MR Engenharia</strong>. Tipo: <strong>Baseada em tempo</strong>.</p>
+                <p>Nome: <strong>{clientConfig.identity.companyName}</strong>. Tipo: <strong>Baseada em tempo</strong>.</p>
               </div>
               <input value={enrollCode} onChange={(e) => setEnrollCode(otp(e.target.value))} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" className="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-center text-xl tracking-[0.4em] font-mono" />
               <button disabled={busy || enrollCode.length !== 6} className="w-full p-3 rounded-xl bg-amber-500 text-slate-950 font-bold disabled:opacity-50">CONFIRMAR E ATIVAR MFA</button>
