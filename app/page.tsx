@@ -10,7 +10,7 @@ import { ProjectsView } from '@/components/views/ProjectsView';
 import { BlogView } from '@/components/views/BlogView';
 import { ArticleDetailView } from '@/components/views/ArticleDetailView';
 import { ContactView } from '@/components/views/ContactView';
-import { AdminView } from '@/components/views/AdminView';
+import { AdminSecureGate } from '@/components/AdminSecureGate';
 import { QuoteModal } from '@/components/QuoteModal';
 import { ProjectDetailModal } from '@/components/ProjectDetailModal';
 import { Project } from '@/lib/siteData';
@@ -100,7 +100,7 @@ export default function Page() {
           )}
 
           {activeTab === 'admin' && (
-            <AdminView
+            <AdminSecureGate
               onNavigateToTab={(tab) => {
                 setActiveTab(tab);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
