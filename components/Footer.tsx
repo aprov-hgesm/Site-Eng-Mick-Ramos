@@ -3,6 +3,7 @@
 import React from 'react';
 import { Phone, Mail, MapPin, Clock, Instagram, Linkedin, MessageCircle } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
+import { clientConfig } from '@/config/client.config';
 import { TabType } from './Header';
 import { MRLogo } from './MRLogo';
 
@@ -19,11 +20,16 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const engineerName = siteInfo.engineerName || clientConfig.identity.professionalName;
+  const whatsappUrl = siteInfo.whatsappUrl || clientConfig.contact.whatsappUrl;
+  const phone = siteInfo.phone || clientConfig.contact.phone;
+  const email = siteInfo.email || clientConfig.contact.email;
+  const whatsappDisplay =
+    phone === clientConfig.contact.phone ? clientConfig.contact.whatsappDisplay : phone;
+
   return (
-    <footer className="bg-[#070D1E] text-slate-300 border-t border-slate-800 font-sans">
-      
-      {/* Upper Footer CTA Strip */}
-      <div className="bg-[#0A1128] border-b border-slate-800/80 py-10 px-4 sm:px-6 lg:px-8">
+    <footer className="theme-footer-surface text-slate-300 border-t border-slate-800 font-sans">
+      <div className="theme-footer-strip-surface border-b border-slate-800/80 py-10 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-center md:text-left">
             <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-emerald-400 hidden sm:block">
@@ -34,28 +40,25 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
                 Ficou com alguma dúvida?
               </h3>
               <p className="text-slate-400 text-sm mt-1">
-                Fale diretamente com o engenheiro Mick Ramos pelo WhatsApp.
+                {`Fale diretamente com o engenheiro ${engineerName} pelo WhatsApp.`}
               </p>
             </div>
           </div>
           <a
-            href={siteInfo.whatsappUrl || "https://wa.me/5586999270261?text=Ol%C3%A1%2C%20tenho%20uma%20d%C3%BAvida%20e%20gostaria%20de%20falar%20com%20o%20engenheiro."}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
             id="footer-whatsapp-cta-btn"
             className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl flex items-center gap-2.5 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5"
           >
             <MessageCircle className="w-5 h-5 fill-current" />
-            <span>WHATSAPP (+55 86 99927-0261)</span>
+            <span>WHATSAPP ({whatsappDisplay})</span>
           </a>
         </div>
       </div>
 
-      {/* Main Footer Links */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          
-          {/* Brand Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="h-10 px-3 bg-amber-500/10 border border-amber-500/50 rounded-lg flex items-center justify-center max-w-[160px] overflow-hidden">
@@ -79,7 +82,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             </p>
             <div className="flex items-center gap-3 pt-2">
               <a
-                href={siteInfo.whatsappUrl}
+                href={whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-slate-800 hover:bg-emerald-600 text-slate-300 hover:text-white flex items-center justify-center transition-colors"
@@ -104,42 +107,17 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             </div>
           </div>
 
-          {/* Navigation Links */}
           <div>
             <h5 className="font-serif font-bold text-white text-sm tracking-wider uppercase border-b border-amber-500/30 pb-2 mb-4">
               NAVEGAÇÃO
             </h5>
             <ul className="space-y-2 text-xs">
-              <li>
-                <button onClick={() => handleNavClick('inicio')} className="hover:text-amber-400 transition-colors">
-                  Início
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('sobre')} className="hover:text-amber-400 transition-colors">
-                  Sobre
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('servicos')} className="hover:text-amber-400 transition-colors">
-                  Serviços
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('projetos')} className="hover:text-amber-400 transition-colors">
-                  Projetos
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('blog')} className="hover:text-amber-400 transition-colors">
-                  Blog
-                </button>
-              </li>
-              <li>
-                <button onClick={() => handleNavClick('contato')} className="hover:text-amber-400 transition-colors">
-                  Contato
-                </button>
-              </li>
+              <li><button onClick={() => handleNavClick('inicio')} className="hover:text-amber-400 transition-colors">Início</button></li>
+              <li><button onClick={() => handleNavClick('sobre')} className="hover:text-amber-400 transition-colors">Sobre</button></li>
+              <li><button onClick={() => handleNavClick('servicos')} className="hover:text-amber-400 transition-colors">Serviços</button></li>
+              <li><button onClick={() => handleNavClick('projetos')} className="hover:text-amber-400 transition-colors">Projetos</button></li>
+              <li><button onClick={() => handleNavClick('blog')} className="hover:text-amber-400 transition-colors">Blog</button></li>
+              <li><button onClick={() => handleNavClick('contato')} className="hover:text-amber-400 transition-colors">Contato</button></li>
               <li>
                 <button onClick={() => handleNavClick('admin')} className="text-amber-400 hover:text-amber-300 font-bold transition-colors">
                   🔒 Painel Admin
@@ -148,7 +126,6 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             </ul>
           </div>
 
-          {/* Services Column */}
           <div>
             <h5 className="font-serif font-bold text-white text-sm tracking-wider uppercase border-b border-amber-500/30 pb-2 mb-4">
               SERVIÇOS
@@ -163,7 +140,6 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             </ul>
           </div>
 
-          {/* Contact Details */}
           <div>
             <h5 className="font-serif font-bold text-white text-sm tracking-wider uppercase border-b border-amber-500/30 pb-2 mb-4">
               CONTATO
@@ -171,11 +147,11 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             <ul className="space-y-3 text-xs">
               <li className="flex items-start gap-2.5">
                 <Phone className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>{siteInfo.phone}</span>
+                <span>{phone}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Mail className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span className="break-all">{siteInfo.email}</span>
+                <span className="break-all">{email}</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <MapPin className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
@@ -186,14 +162,11 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
                 <span>{siteInfo.hours}</span>
               </li>
             </ul>
-
           </div>
-
         </div>
       </div>
 
-      {/* Bottom Legal Bar */}
-      <div className="bg-[#040813] py-6 border-t border-slate-800/80 text-slate-500 text-xs">
+      <div className="theme-footer-bottom-surface py-6 border-t border-slate-800/80 text-slate-500 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <p>© 2024 {siteInfo.brandName}. Todos os direitos reservados.</p>
           <div className="flex items-center gap-4 text-amber-400/80 font-mono text-[11px]">
@@ -210,7 +183,6 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
           </div>
         </div>
       </div>
-
     </footer>
   );
 };

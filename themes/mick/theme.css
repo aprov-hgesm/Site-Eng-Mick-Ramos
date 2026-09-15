@@ -1,0 +1,47 @@
+:root,
+html[data-theme='mick'] {
+  --site-page-bg: #0f172a;
+  --site-page-text: #f1f5f9;
+  --site-header-bg: #0a1128;
+  --site-header-mobile-bg: #0d182e;
+  --site-footer-bg: #070d1e;
+  --site-footer-strip-bg: #0a1128;
+  --site-footer-bottom-bg: #040813;
+  --site-accent: #f59e0b;
+  --site-accent-dark: #d97706;
+  --site-accent-deep: #b45309;
+}
+
+.site-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--site-page-bg);
+  color: var(--site-page-text);
+  font-family: var(--font-sans);
+}
+
+.site-shell ::selection {
+  background: var(--site-accent);
+  color: #020617;
+}
+
+.theme-header-surface {
+  background: var(--site-header-bg);
+}
+
+.theme-header-mobile-surface {
+  background: var(--site-header-mobile-bg);
+}
+
+.theme-footer-surface {
+  background: var(--site-footer-bg);
+}
+
+.theme-footer-strip-surface {
+  background: var(--site-footer-strip-bg);
+}
+
+.theme-footer-bottom-surface {
+  background: var(--site-footer-bottom-bg);
+}

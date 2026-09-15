@@ -43,11 +43,9 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#0A1128] text-white shadow-xl border-b border-amber-500/20">
+    <header className="theme-header-surface sticky top-0 z-50 text-white shadow-xl border-b border-amber-500/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          
-          {/* Logo & Branding */}
           <button
             onClick={() => handleNavClick('inicio')}
             className="flex items-center gap-3 text-left group focus:outline-none"
@@ -76,7 +74,6 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </button>
 
-          {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-1 xl:space-x-2" id="desktop-navbar">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;
@@ -100,7 +97,6 @@ export const Header: React.FC<HeaderProps> = ({
             })}
           </nav>
 
-          {/* Action CTA Button */}
           <div className="hidden sm:flex items-center gap-3">
             <button
               onClick={onOpenQuote}
@@ -112,7 +108,6 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* Mobile Menu Toggle */}
           <div className="lg:hidden flex items-center gap-2">
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -126,9 +121,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0D182E] border-t border-amber-500/20 px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top duration-300">
+        <div className="theme-header-mobile-surface lg:hidden border-t border-amber-500/20 px-4 pt-3 pb-6 space-y-2 animate-in slide-in-from-top duration-300">
           <div className="grid grid-cols-1 gap-1 py-2">
             {navItems.map((item) => {
               const isActive = activeTab === item.id;

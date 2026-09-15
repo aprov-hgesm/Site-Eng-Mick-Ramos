@@ -1,16 +1,20 @@
 import type { Metadata } from 'next';
-import './globals.css'; // Global styles
+import { clientConfig } from '@/config/client.config';
+import './globals.css';
+
+const previewImageUrl = `${clientConfig.metadata.siteUrl}${clientConfig.metadata.previewImagePath}`;
 
 export const metadata: Metadata = {
-  title: 'MR Engenharia | Mick Ramos - Engenheiro Civil CREA-PI | Parnaíba',
-  description: 'Projetos de engenharia civil, laudos técnicos, regularização de imóveis e acompanhamento de obras em Parnaíba e região. Engenheiro Mick Ramos, CREA-PI 1920983666. Solicite um orçamento.',
+  metadataBase: new URL(clientConfig.metadata.siteUrl),
+  title: clientConfig.metadata.title,
+  description: clientConfig.metadata.description,
   openGraph: {
-    title: 'MR Engenharia | Mick Ramos - Engenheiro Civil',
-    description: 'Soluções completas em engenharia civil em Parnaíba - PI. Projetos, laudos, regularização e gestão de obras.',
-    url: 'https://site-eng-mick-ramos.vercel.app/',
+    title: clientConfig.metadata.openGraphTitle,
+    description: clientConfig.metadata.openGraphDescription,
+    url: clientConfig.metadata.siteUrl,
     images: [
       {
-        url: 'https://site-eng-mick-ramos.vercel.app/imagem-preview.jpg',
+        url: previewImageUrl,
       },
     ],
     type: 'website',
@@ -20,9 +24,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" data-theme={clientConfig.theme}>
       <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
-

@@ -1,0 +1,85 @@
+name: Visual Regression
+
+on:
+  push:
+    branches:
+      - refactor/template-architecture
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout refactor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+
+      - name: Install branch dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build branch
+        run: bun run build
+
+      - name: Install visual inspection tools
+        run: npm install --no-save --package-lock=false puppeteer-core@24.17.0 pixelmatch@7.1.0 pngjs@7.0.0
+
+      - name: Prepare main worktree
+        run: git worktree add ../site-main origin/main
+
+      - name: Install and build main
+        working-directory: ../site-main
+        run: |
+          bun install --frozen-lockfile
+          bun run build
+
+      - name: Start both builds
+        run: |
+          nohup bun run start -- -p 3000 -H 127.0.0.1 > /tmp/branch-server.log 2>&1 &
+          cd ../site-main
+          nohup bun run start -- -p 3001 -H 127.0.0.1 > /tmp/main-server.log 2>&1 &
+
+      - name: Wait for servers
+        shell: bash
+        run: |
+          for port in 3000 3001; do
+            ready=0
+            for i in {1..60}; do
+              if curl -fsS "http://127.0.0.1:${port}" >/dev/null; then
+                ready=1
+                break
+              fi
+              sleep 1
+            done
+            if [ "$ready" -ne 1 ]; then
+              echo "Server on port ${port} did not become ready"
+              cat /tmp/branch-server.log || true
+              cat /tmp/main-server.log || true
+              exit 1
+            fi
+          done
+
+      - name: Run visual inspection
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+        run: node scripts/visual-regression.mjs
+
+      - name: Upload visual report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: visual-regression-report
+          path: visual-report
+          if-no-files-found: warn
+          retention-days: 7
