@@ -1,0 +1,145 @@
+name: Apply Remaining Security Hardening
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply targeted hardening
+        shell: python
+        run: |
+          from pathlib import Path
+
+          admin_path = Path('components/views/AdminView.tsx')
+          admin = admin_path.read_text(encoding='utf-8')
+
+          old_validation = """    // Check if file is an image by MIME or extension
+    const isImage = file.type.startsWith('image/') || /\\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(file.name);
+    if (!isImage) {
+      reject(new Error('O arquivo selecionado não é uma imagem válida (formatos aceitos: JPG, PNG, WEBP).'));
+      return;
+    }
+
+    if (file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+      reject(new Error('Formato HEIC/HEIF detectado. Por favor, selecione a foto em formato JPG ou PNG.'));
+      return;
+    }
+"""
+          new_validation = """    // Security: only allow raster formats that are re-encoded before persistence.
+    // Require both a trusted MIME type and a matching extension to reduce spoofed uploads.
+    const allowedMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    const hasAllowedExtension = /\\.(jpe?g|png|webp)$/i.test(file.name);
+    if (!allowedMimeTypes.has(file.type) || !hasAllowedExtension) {
+      reject(new Error('Formato de imagem não permitido. Use somente JPG, PNG ou WEBP.'));
+      return;
+    }
+"""
+          if old_validation in admin:
+              admin = admin.replace(old_validation, new_validation, 1)
+          elif new_validation not in admin:
+              raise SystemExit('Expected image validation block was not found')
+
+          admin = admin.replace('accept="image/*,.svg"', 'accept="image/jpeg,image/png,image/webp"')
+          admin = admin.replace('accept="image/*"', 'accept="image/jpeg,image/png,image/webp"')
+          admin = admin.replace('Formatos suportados: PNG, SVG, WEBP, JPG (Ideal fundo transparente)', 'Formatos suportados: PNG, WEBP, JPG (Ideal fundo transparente)')
+          admin = admin.replace('Formatos suportados: PNG, SVG, WEBP, JPG', 'Formatos suportados: PNG, WEBP, JPG')
+          admin = admin.replace(
+              '// Rasterize every accepted logo format (including SVG) before persistence.\n      // This preserves SVG upload support without storing active XML/SVG payloads.',
+              '// Accept only raster formats and re-encode them before persistence.'
+          )
+          admin_path.write_text(admin, encoding='utf-8')
+
+          contact_path = Path('components/views/ContactView.tsx')
+          contact = contact_path.read_text(encoding='utf-8')
+
+          state_anchor = "  const [copied, setCopied] = useState(false);\n"
+          state_line = "  const [emailDeliveryStatus, setEmailDeliveryStatus] = useState<'idle' | 'sent' | 'failed'>('idle');\n"
+          if state_line not in contact:
+              if state_anchor not in contact:
+                  raise SystemExit('Contact state anchor was not found')
+              contact = contact.replace(state_anchor, state_anchor + state_line, 1)
+
+          reset_anchor = "    setLoading(true);\n    setErrorMessage(null);\n"
+          reset_replacement = "    setLoading(true);\n    setErrorMessage(null);\n    setEmailDeliveryStatus('idle');\n"
+          if reset_replacement not in contact:
+              if reset_anchor not in contact:
+                  raise SystemExit('Contact submit reset anchor was not found')
+              contact = contact.replace(reset_anchor, reset_replacement, 1)
+
+          old_response = """        if (!response.ok) {
+          console.warn('Falha no envio via EmailJS. Mensagem já gravada no Firestore.');
+        }
+      } catch (emailError: unknown) {
+        console.warn('Erro ao tentar envio direto via EmailJS:', emailError);
+      }
+"""
+          new_response = """        if (response.ok) {
+          setEmailDeliveryStatus('sent');
+        } else {
+          setEmailDeliveryStatus('failed');
+          console.warn('Falha no envio via EmailJS. Mensagem já gravada no Firestore.');
+        }
+      } catch (emailError: unknown) {
+        setEmailDeliveryStatus('failed');
+        console.warn('Erro ao tentar envio direto via EmailJS:', emailError);
+      }
+"""
+          if old_response in contact:
+              contact = contact.replace(old_response, new_response, 1)
+          elif new_response not in contact:
+              raise SystemExit('EmailJS response block was not found')
+
+          success_anchor = """                <p className=\"text-xs text-slate-600 max-w-md mx-auto\">
+                  Obrigado, <strong className=\"text-slate-900\">{name}</strong>. Sua mensagem foi recebida e registrada com sucesso.
+                </p>
+"""
+          status_ui = """
+
+                {emailDeliveryStatus === 'sent' && (
+                  <div className=\"p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 max-w-lg mx-auto\">
+                    Solicitação registrada e notificação automática por e-mail enviada com sucesso.
+                  </div>
+                )}
+                {emailDeliveryStatus === 'failed' && (
+                  <div className=\"p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 max-w-lg mx-auto\">
+                    Sua mensagem está salva no sistema. A notificação automática por e-mail não pôde ser confirmada, mas o pedido não foi perdido.
+                  </div>
+                )}
+                {emailDeliveryStatus === 'idle' && loading && (
+                  <div className=\"p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 max-w-lg mx-auto\">
+                    Mensagem registrada. Confirmando a notificação automática por e-mail...
+                  </div>
+                )}
+"""
+          if status_ui.strip() not in contact:
+              if success_anchor not in contact:
+                  raise SystemExit('Contact success UI anchor was not found')
+              contact = contact.replace(success_anchor, success_anchor + status_ui, 1)
+
+          contact_path.write_text(contact, encoding='utf-8')
+
+      - name: Commit hardening changes
+        run: |
+          if git diff --quiet; then
+            echo "No changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add components/views/AdminView.tsx components/views/ContactView.tsx
+          git commit -m "fix(security): restrict uploads and clarify email delivery"
+          git push origin HEAD:main
