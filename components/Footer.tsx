@@ -24,6 +24,8 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
   const whatsappUrl = siteInfo.whatsappUrl || clientConfig.contact.whatsappUrl;
   const phone = siteInfo.phone || clientConfig.contact.phone;
   const email = siteInfo.email || clientConfig.contact.email;
+  const whatsappDisplay =
+    phone === clientConfig.contact.phone ? clientConfig.contact.whatsappDisplay : phone;
 
   return (
     <footer className="theme-footer-surface text-slate-300 border-t border-slate-800 font-sans">
@@ -50,7 +52,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
             className="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-widest rounded-xl flex items-center gap-2.5 shadow-lg shadow-emerald-600/20 transition-all transform hover:-translate-y-0.5"
           >
             <MessageCircle className="w-5 h-5 fill-current" />
-            <span>WHATSAPP {phone}</span>
+            <span>WHATSAPP ({whatsappDisplay})</span>
           </a>
         </div>
       </div>
