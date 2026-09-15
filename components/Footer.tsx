@@ -40,7 +40,7 @@ export const Footer: React.FC<FooterProps> = ({ setActiveTab, onOpenQuote }) => 
                 Ficou com alguma dúvida?
               </h3>
               <p className="text-slate-400 text-sm mt-1">
-                Fale diretamente com o engenheiro {engineerName} pelo WhatsApp.
+                {`Fale diretamente com o engenheiro ${engineerName} pelo WhatsApp.`}
               </p>
             </div>
           </div>
