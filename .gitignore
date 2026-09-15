@@ -6,3 +6,20 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local deployment/tool state
+.vercel/
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Private credential material must never be committed
+*.pem
+*.key
+*.p12
+*.pfx
+service-account*.json
+serviceAccount*.json
+*-firebase-adminsdk-*.json
+google-application-credentials*.json
