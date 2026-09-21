@@ -21,15 +21,12 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // A autorização administrativa exige simultaneamente:
-      // 1) o UID imutável da conta administradora;
-      // 2) e-mail verificado;
-      // 3) sessão autenticada usando TOTP como segundo fator.
-      // Assim, uma sessão obtida apenas com a senha não recebe acesso administrativo.
+      // Ambiente MR Engenharia isolado: a autorização administrativa exige
+      // simultaneamente o UID e o e-mail esperados no novo projeto Firebase.
+      // MFA/App Check serão reativados após a validação do cutover.
       return request.auth != null
-        && request.auth.uid == 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2'
-        && request.auth.token.email_verified == true
-        && request.auth.token.firebase.sign_in_second_factor == 'totp';
+        && request.auth.uid == '5vhxe0pmozbkIXuWfFIekTzWcYV2'
+        && request.auth.token.email == 'codex.martis.dev@gmail.com';
     }
 
     function hasExpectedTargetEmail(data) {
