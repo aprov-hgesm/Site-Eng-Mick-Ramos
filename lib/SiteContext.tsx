@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Project, BlogPost, Service, SiteContactInfo, AboutInfo, PROJECTS, BLOG_POSTS, SERVICES, DEFAULT_SITE_INFO, DEFAULT_ABOUT_INFO } from './siteData';
 import { db } from './firebase';
-import { collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, writeBatch } from 'firebase/firestore';
 
 interface SiteContextType {
   projects: Project[];
@@ -51,9 +51,13 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [siteInfo, setSiteInfo] = useState<SiteContactInfo>(DEFAULT_SITE_INFO);
   const [aboutInfo, setAboutInfo] = useState<AboutInfo>(DEFAULT_ABOUT_INFO);
 
-  // Listen to Firestore changes in real-time across all devices
+  // Load public content once. The site keeps the built-in defaults when the
+  // isolated Firestore is empty, so public rendering never depends on realtime
+  // listeners or on legacy data being present.
   useEffect(() => {
-    // Read local cache safely after mount to avoid server/client hydration mismatch
+    let cancelled = false;
+
+    // Read local cache safely after mount to avoid server/client hydration mismatch.
     try {
       const savedSiteInfo = localStorage.getItem(SITE_INFO_STORAGE_KEY);
       if (savedSiteInfo) {
@@ -84,102 +88,126 @@ export const SiteProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = JSON.parse(savedServices);
         queueMicrotask(() => setServices(data));
       }
-    } catch (e) {}
+    } catch (error) {
+      console.warn('Não foi possível carregar o cache local do site.', error);
+    }
 
-    // 1. Site Info (contact details, logos, phone, wa, CREA)
-    const unsubSiteInfo = onSnapshot(doc(db, 'siteConfig', 'contact'), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data() as SiteContactInfo;
-        setSiteInfo((prev) => {
-          const merged = { ...prev, ...data };
-          safeSetLocalStorage(SITE_INFO_STORAGE_KEY, merged);
-          return merged;
-        });
-      }
-    }, (error) => console.error('Firestore siteInfo listener error:', error));
+    const loadPublicContent = async () => {
+      try {
+        const [
+          siteInfoSnapshot,
+          aboutInfoSnapshot,
+          imagesSnapshot,
+          homeAboutSnapshot,
+          projectsSnapshot,
+          blogSnapshot,
+          servicesSnapshot,
+        ] = await Promise.all([
+          getDoc(doc(db, 'siteConfig', 'contact')),
+          getDoc(doc(db, 'siteConfig', 'about')),
+          getDoc(doc(db, 'siteConfig', 'images')),
+          getDoc(doc(db, 'siteConfig', 'homeAboutImage')),
+          getDocs(collection(db, 'projects')),
+          getDocs(collection(db, 'blogPosts')),
+          getDocs(collection(db, 'services')),
+        ]);
 
-    // 2. About Info (hero title, image, history, values)
-    const unsubAboutInfo = onSnapshot(doc(db, 'siteConfig', 'about'), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data() as AboutInfo;
-        setAboutInfo((prev) => {
-          const merged = { ...prev, ...data };
-          safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, merged);
-          return merged;
-        });
-      }
-    }, (error) => console.error('Firestore aboutInfo listener error:', error));
+        if (cancelled) return;
 
-    // Dedicated listener for modular site images
-    const unsubImages = onSnapshot(doc(db, 'siteConfig', 'images'), (snapshot) => {
-      if (snapshot.exists()) {
-        const imgData = snapshot.data() as Record<string, any>;
-        if (imgData.homeAboutImageUrl || imgData.servicesHeroImage || imgData.heroImageUrl || imgData.engineerPhotoUrl) {
+        if (siteInfoSnapshot.exists()) {
+          const data = siteInfoSnapshot.data() as SiteContactInfo;
           setSiteInfo((prev) => {
-            const updated: SiteContactInfo = { ...prev };
-            if (imgData.homeAboutImageUrl) updated.homeAboutImageUrl = imgData.homeAboutImageUrl;
-            if (imgData.servicesHeroImage) updated.servicesHeroImage = imgData.servicesHeroImage;
-            if (imgData.heroImageUrl) updated.heroImageUrl = imgData.heroImageUrl;
-            if (imgData.engineerPhotoUrl) updated.engineerPhotoUrl = imgData.engineerPhotoUrl;
-            safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
-            return updated;
+            const merged = { ...prev, ...data };
+            safeSetLocalStorage(SITE_INFO_STORAGE_KEY, merged);
+            return merged;
           });
         }
-        if (imgData.aboutHeroImage || imgData.aboutOfficeImage) {
+
+        if (aboutInfoSnapshot.exists()) {
+          const data = aboutInfoSnapshot.data() as AboutInfo;
           setAboutInfo((prev) => {
-            const updated: AboutInfo = { ...prev };
-            if (imgData.aboutHeroImage) updated.heroImage = imgData.aboutHeroImage;
-            if (imgData.aboutOfficeImage) updated.officeImage = imgData.aboutOfficeImage;
-            safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, updated);
-            return updated;
+            const merged = { ...prev, ...data };
+            safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, merged);
+            return merged;
           });
         }
-      }
-    }, (error) => console.warn('Firestore images listener error:', error));
 
-    // Dedicated listener for homeAboutImage document
-    const unsubHomeAbout = onSnapshot(doc(db, 'siteConfig', 'homeAboutImage'), (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        if (data?.homeAboutImageUrl) {
-          setSiteInfo((prev) => {
-            const updated = { ...prev, homeAboutImageUrl: data.homeAboutImageUrl };
-            safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
-            return updated;
-          });
+        if (imagesSnapshot.exists()) {
+          const imgData = imagesSnapshot.data() as Record<string, any>;
+
+          if (
+            imgData.homeAboutImageUrl
+            || imgData.servicesHeroImage
+            || imgData.heroImageUrl
+            || imgData.engineerPhotoUrl
+          ) {
+            setSiteInfo((prev) => {
+              const updated: SiteContactInfo = { ...prev };
+              if (imgData.homeAboutImageUrl) updated.homeAboutImageUrl = imgData.homeAboutImageUrl;
+              if (imgData.servicesHeroImage) updated.servicesHeroImage = imgData.servicesHeroImage;
+              if (imgData.heroImageUrl) updated.heroImageUrl = imgData.heroImageUrl;
+              if (imgData.engineerPhotoUrl) updated.engineerPhotoUrl = imgData.engineerPhotoUrl;
+              safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
+              return updated;
+            });
+          }
+
+          if (imgData.aboutHeroImage || imgData.aboutOfficeImage) {
+            setAboutInfo((prev) => {
+              const updated: AboutInfo = { ...prev };
+              if (imgData.aboutHeroImage) updated.heroImage = imgData.aboutHeroImage;
+              if (imgData.aboutOfficeImage) updated.officeImage = imgData.aboutOfficeImage;
+              safeSetLocalStorage(ABOUT_INFO_STORAGE_KEY, updated);
+              return updated;
+            });
+          }
         }
+
+        if (homeAboutSnapshot.exists()) {
+          const data = homeAboutSnapshot.data();
+          if (data?.homeAboutImageUrl) {
+            setSiteInfo((prev) => {
+              const updated = { ...prev, homeAboutImageUrl: data.homeAboutImageUrl };
+              safeSetLocalStorage(SITE_INFO_STORAGE_KEY, updated);
+              return updated;
+            });
+          }
+        }
+
+        if (!projectsSnapshot.empty) {
+          const loadedProjects = projectsSnapshot.docs.map(
+            (docSnap) => ({ ...docSnap.data(), id: docSnap.id } as Project),
+          );
+          setProjects(loadedProjects);
+          safeSetLocalStorage(PROJECTS_STORAGE_KEY, loadedProjects);
+        }
+
+        if (!blogSnapshot.empty) {
+          const loadedPosts = blogSnapshot.docs.map(
+            (docSnap) => ({ ...docSnap.data(), id: docSnap.id } as BlogPost),
+          );
+          setBlogPosts(loadedPosts);
+          safeSetLocalStorage(BLOG_STORAGE_KEY, loadedPosts);
+        }
+
+        if (!servicesSnapshot.empty) {
+          const loadedServices = servicesSnapshot.docs.map(
+            (docSnap) => ({ ...docSnap.data(), id: docSnap.id } as Service),
+          );
+          setServices(loadedServices);
+          safeSetLocalStorage(SERVICES_STORAGE_KEY, loadedServices);
+        }
+      } catch (error) {
+        // The public site remains usable from the built-in defaults and local
+        // cache if Firebase is unavailable or the new database is still empty.
+        console.warn('Não foi possível carregar as personalizações do Firestore.', error);
       }
-    }, (error) => console.warn('Firestore homeAboutImage listener error:', error));
+    };
 
-    // 3. Projects collection
-    const unsubProjects = onSnapshot(collection(db, 'projects'), (snapshot) => {
-      const loadedProjects = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Project));
-      setProjects(loadedProjects);
-      safeSetLocalStorage(PROJECTS_STORAGE_KEY, loadedProjects);
-    }, (error) => console.error('Firestore projects listener error:', error));
-
-    // 4. Blog Posts collection
-    const unsubBlog = onSnapshot(collection(db, 'blogPosts'), (snapshot) => {
-      const loadedPosts = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as BlogPost));
-      setBlogPosts(loadedPosts);
-      safeSetLocalStorage(BLOG_STORAGE_KEY, loadedPosts);
-    }, (error) => console.error('Firestore blogPosts listener error:', error));
-
-    // 5. Services collection
-    const unsubServices = onSnapshot(collection(db, 'services'), (snapshot) => {
-      const loadedServices = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id } as Service));
-      setServices(loadedServices);
-      safeSetLocalStorage(SERVICES_STORAGE_KEY, loadedServices);
-    }, (error) => console.error('Firestore services listener error:', error));
+    void loadPublicContent();
 
     return () => {
-      unsubSiteInfo();
-      unsubAboutInfo();
-      unsubImages();
-      unsubHomeAbout();
-      unsubProjects();
-      unsubBlog();
-      unsubServices();
+      cancelled = true;
     };
   }, []);
 
