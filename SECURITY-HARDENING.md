@@ -43,7 +43,7 @@ A dívida de tipagem preexistente relacionada a `no-explicit-any` permanece vis�
 
 ## Controles externos ainda pendentes
 
-1. Publicar novamente `firestore.rules` no banco `ai-studio-mrengenhariamick-45c18445-8a64-4627-84c9-31b89158aebe` para ativar a nova exigência de sessão TOTP nas operações administrativas; depois testar login, leitura e escrita do painel.
+1. Publicar `firestore.rules` no banco isolado `mr-engenharia` do projeto `mr-engenharia`, validar o novo administrador e concluir a matrícula TOTP antes do cutover.
 2. Avaliar e, após confirmar todos os frontends legítimos que usam o projeto Firebase, habilitar enforcement do App Check para Firebase Authentication.
 3. Revisar os Authorized Domains do Firebase Authentication e remover apenas domínios comprovadamente obsoletos.
 4. Aplicar restrição por domínio/origem, quotas e controles antiabuso no EmailJS.
@@ -54,3 +54,13 @@ A dívida de tipagem preexistente relacionada a `no-explicit-any` permanece vis�
 ## Observação
 
 Firebase Web API Key, OAuth Client ID web e chave pública do reCAPTCHA/App Check não são segredos de servidor. A segurança do Firebase depende de Security Rules, Authentication, MFA, App Check e restrições de uso adequadamente configuradas. Credenciais privadas, chaves de serviço, tokens de acesso e segredos de backend nunca devem ser incorporados ao bundle do navegador ou versionados no repositório.
+
+
+## Migração para Firebase isolado — 2026-09-21
+
+- Projeto de destino: `mr-engenharia`.
+- Banco de destino: `mr-engenharia` (Firestore Standard / Native).
+- O site deixa de usar o banco legado `ai-studio-mrengenhariamick-45c18445-8a64-4627-84c9-31b89158aebe`.
+- Leituras públicas em tempo real foram substituídas por carregamento único; o conteúdo padrão embarcado no código permanece como fallback quando o banco está vazio.
+- App Check fica explicitamente desabilitado durante o cutover e só deve ser reativado depois de uma nova chave ser registrada no projeto de destino e suas métricas serem validadas.
+- O administrador do novo projeto usa UID `5vhxe0pmozbkIXuWfFIekTzWcYV2`; as regras continuam exigindo e-mail verificado e sessão TOTP.

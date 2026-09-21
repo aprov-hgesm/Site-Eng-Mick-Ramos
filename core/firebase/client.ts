@@ -9,10 +9,11 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // App Check belongs to the reusable infrastructure layer. It is enabled only
 // when a site key is configured, which keeps local/preview environments usable.
 if (typeof window !== 'undefined') {
+  const appCheckEnabled = process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_ENABLED === '1';
   const appCheckSiteKey =
     process.env.NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY || firebaseConfig.recaptchaSiteKey;
 
-  if (appCheckSiteKey) {
+  if (appCheckEnabled && appCheckSiteKey) {
     try {
       initializeAppCheck(app, {
         provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),

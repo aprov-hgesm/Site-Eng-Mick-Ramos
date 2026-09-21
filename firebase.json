@@ -1,7 +1,7 @@
 {
   "firestore": [
     {
-      "database": "ai-studio-mrengenhariamick-45c18445-8a64-4627-84c9-31b89158aebe",
+      "database": "mr-engenharia",
       "rules": "firestore.rules"
     }
   ]
