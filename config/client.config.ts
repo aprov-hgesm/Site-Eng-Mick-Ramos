@@ -29,7 +29,7 @@ export const clientConfig = {
     // The UID is not a secret; authorization remains enforced by Firebase/Firestore.
     // Keeping it configurable lets each deployment use a different administrator
     // without changing reusable UI/core code.
-    uid: withFallback(process.env.NEXT_PUBLIC_ADMIN_UID, '5vhxe0pmozbkIXuWfFIekTzWcYV2'),
+    uid: '5vhxe0pmozbkIXuWfFIekTzWcYV2',
   },
 
   integrations: {
