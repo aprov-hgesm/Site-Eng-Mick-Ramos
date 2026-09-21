@@ -21,12 +21,14 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Ambiente MR Engenharia isolado: a autorização administrativa exige
-      // simultaneamente o UID e o e-mail esperados no novo projeto Firebase.
-      // MFA/App Check serão reativados após a validação do cutover.
+      // A autorização administrativa no projeto MR Engenharia exige:
+      // 1) o UID imutável da conta administradora no novo Firebase;
+      // 2) e-mail verificado;
+      // 3) sessão autenticada usando TOTP como segundo fator.
       return request.auth != null
         && request.auth.uid == '5vhxe0pmozbkIXuWfFIekTzWcYV2'
-        && request.auth.token.email == 'codex.martis.dev@gmail.com';
+        && request.auth.token.email_verified == true
+        && request.auth.token.firebase.sign_in_second_factor == 'totp';
     }
 
     function hasExpectedTargetEmail(data) {
