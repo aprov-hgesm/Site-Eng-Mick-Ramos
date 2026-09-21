@@ -12,6 +12,7 @@ import {
 import { useSiteData } from '@/lib/SiteContext';
 import { Project, BlogPost, Service, BLOG_CATEGORIES, SiteContactInfo, AboutInfo, AboutValue } from '@/lib/siteData';
 import { MRLogo } from '../MRLogo';
+import { clientConfig } from '@/config/client.config';
 import { auth, db } from '@/lib/firebase';
 import {
   browserSessionPersistence,
@@ -161,7 +162,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
   } = useSiteData();
 
   // Admin credentials for Firebase Authentication authorization
-  const ADMIN_UID = 'hx9EpMe3uhgdaIxlhS8FcsKAhcB2';
+  const ADMIN_UID = clientConfig.admin.uid;
 
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
