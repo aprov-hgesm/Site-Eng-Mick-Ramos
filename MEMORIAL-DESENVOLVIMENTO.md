@@ -4,6 +4,7 @@
 
 **Repositório:** `aprov-hgesm/Site-Eng-Mick-Ramos`  
 **Branch principal:** `main`  
+**Branch de desenvolvimento atual:** `dev/melhorias-manutencao`  
 **Data de criação:** 30/09/2026
 
 ## 1. OBJETIVO
@@ -52,6 +53,10 @@ Foi realizada auditoria estática inicial antes das novas edições.
 - `.github/workflows/codeql.yml`
 - `.github/workflows/visual-regression.yml`
 - `firebase-applet-config.json`
+- `components/views/ProjectsView.tsx`
+- `components/ProjectDetailModal.tsx`
+- `components/Header.tsx`
+- `lib/siteData.ts`
 
 ### Pontos técnicos registrados
 
@@ -63,8 +68,9 @@ Foi realizada auditoria estática inicial antes das novas edições.
 6. O orçamento grava em `quoteRequests`; o fluxo observado não realiza envio automático de e-mail da mesma forma que o contato.
 7. `SiteContext` possui mecanismos de cache/localStorage que merecem revisão de consistência.
 8. `resetToDefaultData` possui comportamento potencialmente destrutivo e deve ser tratado com cautela.
-9. `AdminView.tsx` é muito grande e é candidato à modularização futura.
+9. `AdminView.tsx` é muito grande e é candidato à modularização futura, caso o arquivo/estrutura atual confirme sua localização.
 10. Há pipelines de segurança, typecheck, build, lint, auditoria de dependências e CodeQL; a existência dos workflows não comprova que a execução mais recente esteja passando.
+11. A área de projetos já possui suporte a `Project.images[]`, lightbox e modal de detalhes; essa estrutura foi aproveitada para organizar o portfólio visual sem criar um segundo sistema de galeria.
 
 ## 3. ESTADO DO COMPUTADOR PARA DESENVOLVIMENTO LOCAL
 
@@ -176,11 +182,10 @@ Para cada intervenção relevante, registrar:
 
 ## 7. ESTADO ATUAL DO PROJETO
 
-**Fase:** preparação do ambiente local.  
-**Última intervenção:** criação deste memorial de continuidade.  
-**Próximo passo:** executar o diagnóstico do PowerShell registrado na seção 3 e instalar o ambiente necessário.
-
-Nenhuma grande alteração de código deve começar antes da preparação e validação do ambiente local.
+**Fase:** organização do portfólio visual + preparação do ambiente local.  
+**Branch de desenvolvimento:** `dev/melhorias-manutencao`.  
+**Última intervenção:** organização da área de projetos como portfólio visual.  
+**Próximo passo recomendado:** configurar o ambiente local e validar a nova experiência visual no localhost antes de abrir PR para `main`.
 
 ## 8. HISTÓRICO DE INTERVENÇÕES
 
@@ -192,6 +197,21 @@ Nenhuma grande alteração de código deve começar antes da preparação e vali
 - Definido o fluxo GitHub → localhost → validação → GitHub → produção.
 - Definido o padrão para registrar futuras intervenções.
 - Nenhum segredo ou credencial privada foi incluído.
+
+### 05/10/2026 — Organização do portfólio visual de projetos
+
+- Reaproveitada a área existente de `ProjectsView` em vez de criar uma segunda página independente de galeria.
+- Transformada a apresentação em um **Portfólio de Projetos / Galeria de Projetos** mais evidente para o cliente.
+- Mantidos os filtros por categoria existentes.
+- A grade passou a priorizar visualização das imagens, com três colunas em telas grandes.
+- Cards passaram a indicar quando um projeto possui múltiplas fotos.
+- Adicionado acesso visual de “Ver galeria” diretamente sobre a imagem.
+- Mantido o lightbox existente para visualização em tela cheia.
+- Mantido o modal de detalhes existente, incluindo galeria de miniaturas e informações técnicas.
+- Incluído carregamento `lazy` das imagens da grade.
+- Nenhuma alteração no modelo de dados foi necessária; o campo opcional `Project.images[]` continua sendo a fonte das imagens adicionais.
+- Alteração registrada no commit `f84683f5ffa2a3e1dac11b7f537ad2ca8f8e77b5` na branch `dev/melhorias-manutencao`.
+- A alteração ainda não foi validada em localhost neste ambiente.
 
 ## 9. REGRA DE CONTINUIDADE ENTRE CONVERSAS
 
