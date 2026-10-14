@@ -225,3 +225,53 @@ Ao iniciar uma nova conversa para continuar este projeto:
 6. Registrar no memorial as mudanças efetivamente realizadas no repositório.
 
 Este memorial é uma fonte de contexto do projeto, mas não substitui a inspeção do código atual nem os testes do ambiente.
+
+
+## 9. CHECKPOINT — AMBIENTE LOCAL E NAVEGAÇÃO (14/10/2026)
+
+### Ambiente local preparado
+
+O usuário concluiu a preparação inicial do computador Windows e clonou o repositório para testes locais.
+
+- PowerShell: 5.1 (Build 26100.9444).
+- Git: 2.56.0.windows.2.
+- Node.js: v24.21.0.
+- npm: 11.19.0.
+- Bun: 1.4.3.
+- Visual Studio Code: 1.141.1, x64.
+- Git configurado com nome `Mick Ramos` e e-mail `engcivilmickramos@gmail.com`.
+- Cópia local: `$HOME\Projetos\Site-Eng-Mick-Ramos`.
+- Branch local: `dev/melhorias-manutencao`, sincronizada com `origin/dev/melhorias-manutencao` no momento do clone.
+- `bun install`: concluído com sucesso; 916 pacotes instalados.
+- `bun run dev`: servidor Next.js iniciou com sucesso em `http://localhost:3000`, indicando `Ready in 1642ms`.
+- Durante a inicialização, Next.js ajustou localmente `tsconfig.json` para incluir `.next-dev/types/**/*.ts`. Essa alteração local ainda precisa ser inspecionada com `git status`; não presumir que deva ser mantida ou descartada sem revisão.
+- O usuário confirmou que a página inicial abre em localhost.
+
+### Problema atual observado
+
+**Sintoma relatado pelo usuário:** ao clicar no item “Sobre” no menu do site local, nada acontece. O usuário também relatou que as páginas “Serviços” e “Blog” não abrem. Ainda não foi confirmado se o problema ocorre com todos os botões ou apenas com a navegação do cabeçalho.
+
+### Inspeção estática realizada
+
+No código da branch de desenvolvimento:
+- `components/Header.tsx` define os itens de navegação como botões e chama `handleNavClick(item.id)`.
+- `handleNavClick` chama `setActiveTab(tabId)`, limpa o artigo selecionado quando aplicável, fecha o menu mobile e rola a página ao topo.
+- `app/page.tsx` usa o estado `activeTab` para renderizar condicionalmente `AboutView`, `ServicesView`, `ProjectsView`, `BlogView` e outras telas.
+- A inspeção estática, por si só, não explica por que o clique não produz efeito no navegador. Não declarar a causa como confirmada antes de um teste de diagnóstico.
+
+### Próximo diagnóstico — manter simples
+
+1. Com o servidor ainda aberto, clicar no botão “CONHEÇA NOSSOS SERVIÇOS” da página inicial.
+2. Informar se esse botão abre a área de Serviços.
+3. Se também não funcionar, o próximo passo é verificar o Console do navegador (F12 → Console) e a janela do PowerShell após um único clique, procurando erro JavaScript/runtime. Pedir apenas um print ou copiar a mensagem de erro, se houver.
+4. Se o botão da página inicial funcionar, testar o menu mobile ou outro botão e isolar o problema no cabeçalho/navegação.
+5. Antes de corrigir arquivos, inspecionar o estado local com `git status` e revisar o ajuste automático de `tsconfig.json`.
+6. Corrigir apenas após identificar a causa; então repetir testes de navegação, executar typecheck/lint/build conforme scripts do projeto e registrar os resultados.
+
+### Estado de publicação
+
+- Nenhuma alteração foi mesclada para `main` por causa deste checkpoint.
+- Nenhuma publicação foi feita por causa deste checkpoint.
+- A galeria e o editor do blog continuam pendentes de validação funcional local.
+- Não afirmar que a branch está pronta para produção até resolver a navegação e executar os testes de validação.
+
