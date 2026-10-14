@@ -275,3 +275,29 @@ No código da branch de desenvolvimento:
 - A galeria e o editor do blog continuam pendentes de validação funcional local.
 - Não afirmar que a branch está pronta para produção até resolver a navegação e executar os testes de validação.
 
+
+
+### Atualização do diagnóstico — todos os botões sem resposta (14/10/2026)
+
+O usuário esclareceu que **nenhum botão funciona**, incluindo os itens do menu e os botões de chamada para ação da página inicial. Portanto, não se deve continuar testando individualmente botões já reportados como inoperantes nem perguntar novamente se o botão de Serviços funciona.
+
+Isso aponta para uma falha mais geral na execução dos handlers/client-side JavaScript ou na hidratação do React, mas a causa ainda **não está confirmada** pela inspeção estática.
+
+Arquivos inspecionados no GitHub na branch `dev/melhorias-manutencao`:
+- `components/Header.tsx`: handlers de navegação usam `setActiveTab`.
+- `app/page.tsx`: página é marcada como `'use client'`, mantém estado React e monta o `SiteProvider`.
+- `app/layout.tsx`: layout raiz renderiza os filhos e importa `globals.css`.
+- `app/globals.css`: Tailwind CSS v4 e tema importados.
+- `lib/SiteContext.tsx`: provider cliente consulta Firebase/Firestore em `useEffect`; erros de carregamento são capturados no fluxo assíncrono, portanto isso isoladamente não explica necessariamente todos os cliques sem resposta.
+- `package.json`: scripts `dev`, `build`, `lint`, `typecheck`.
+
+Próximo passo diagnóstico, sem pedir testes redundantes:
+1. No navegador aberto em `http://localhost:3000`, abrir DevTools com F12.
+2. Selecionar a aba **Console** e recarregar a página com Ctrl+R.
+3. Verificar a primeira mensagem vermelha (especialmente erro de runtime, chunk/asset, hidratação ou exceção JavaScript).
+4. Copiar o erro vermelho ou enviar um único print do Console. Se o Console não mostrar erros, verificar a aba **Network** após recarregar, filtrando por JS e identificando scripts com status falho.
+5. Verificar a saída do terminal que executa `bun run dev` no momento da recarga.
+6. Inspecionar `git status` antes de corrigir; o Next.js alterou `tsconfig.json` localmente durante a inicialização e essa mudança precisa ser revisada.
+7. Corrigir apenas após evidência concreta e validar a navegação completa; não mesclar/publicar até isso passar.
+
+Checkpoint reforça: nenhuma publicação/merge foi feita; a causa do problema continua pendente de evidência do navegador/terminal.
