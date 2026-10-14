@@ -68,7 +68,17 @@ const createNextConfig = (phase: string): NextConfig => {
       return [
         {
           source: '/(.*)',
-          headers: securityHeaders,
+          headers: securityHeaders.map((header) =>
+            header.key === 'Content-Security-Policy' && isDev
+              ? {
+                  ...header,
+                  value: header.value.replace(
+                    "script-src 'self' 'unsafe-inline'",
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                  ),
+                }
+              : header,
+          ),
         },
       ];
     },
