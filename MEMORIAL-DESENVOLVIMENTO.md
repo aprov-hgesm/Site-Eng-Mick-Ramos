@@ -301,3 +301,16 @@ Próximo passo diagnóstico, sem pedir testes redundantes:
 7. Corrigir apenas após evidência concreta e validar a navegação completa; não mesclar/publicar até isso passar.
 
 Checkpoint reforça: nenhuma publicação/merge foi feita; a causa do problema continua pendente de evidência do navegador/terminal.
+
+
+### 14/10/2026 — Correção da política CSP no desenvolvimento
+
+- Diagnóstico confirmado pelo Console: erro EvalError no runtime de atualização do React/Next.js porque a política `script-src` não permitia avaliação dinâmica de código durante o desenvolvimento.
+- Arquivo corrigido: `next.config.ts`.
+- A permissão necessária foi adicionada condicionalmente apenas na fase de servidor de desenvolvimento; a política de produção permanece inalterada.
+- O erro 404 de `favicon.ico` é secundário e não explica os botões sem resposta.
+- Commit da correção: `0abab469ba41211fcd79e93838cd889ceb6a2414`.
+- Ainda não validado no navegador: é necessário atualizar a cópia local, reiniciar o servidor e conferir o Console e as interações.
+- Próximo passo: no PowerShell do projeto, interromper o servidor com Ctrl+C; executar `git pull origin dev/melhorias-manutencao`; iniciar com `bun run dev`; recarregar `http://localhost:3000` usando Ctrl+Shift+R.
+- Nenhuma alteração em `main` nem publicação em produção foi realizada.
+- Status: correção no branch de desenvolvimento; validação funcional pendente.
