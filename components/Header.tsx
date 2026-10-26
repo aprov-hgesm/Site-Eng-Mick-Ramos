@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Phone, Menu, X, MessageSquare, ChevronRight } from 'lucide-react';
 import { useSiteData } from '@/lib/SiteContext';
-import { MRLogo } from './MRLogo';
 
 export type TabType = 'inicio' | 'sobre' | 'servicos' | 'projetos' | 'blog' | 'contato' | 'admin';
 
@@ -52,15 +51,12 @@ export const Header: React.FC<HeaderProps> = ({
             id="brand-logo-btn"
           >
             <div className="h-12 px-3 bg-gradient-to-br from-[#0A1128] via-[#111C3A] to-[#0A1128] border-2 border-amber-500/60 rounded-xl flex items-center justify-center shadow-lg group-hover:border-amber-400 transition-all duration-300 max-w-[180px] overflow-hidden">
-              {siteInfo.headerLogoUrl ? (
-                <img
-                  src={siteInfo.headerLogoUrl}
-                  alt={siteInfo.brandName}
-                  className="h-8 max-w-full object-contain"
-                />
-              ) : (
-                <MRLogo className="h-8 w-auto" color="#F59E0B" />
-              )}
+              <img
+                src={siteInfo.headerLogoUrl || '/mr-logo.svg'}
+                alt={siteInfo.brandName}
+                className="h-9 max-w-full object-contain"
+                decoding="async"
+              />
             </div>
             <div className="flex flex-col justify-center">
               <span className="font-serif font-bold text-lg sm:text-xl tracking-wider text-white group-hover:text-amber-300 transition-colors">
