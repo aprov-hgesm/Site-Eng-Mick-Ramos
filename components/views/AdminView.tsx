@@ -363,7 +363,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
     setIsUploadingHeaderLogo(true);
     try {
       // Accept only raster formats and re-encode them before persistence.
-      const resultUrl = await compressImageFile(file, 800, 800, 0.9);
+      const resultUrl = await compressImageFile(file, 1200, 900, 0.96, 'image/webp');
       const updated = { ...contactForm, headerLogoUrl: resultUrl };
       setContactForm(updated);
       await updateSiteInfo(updated);
@@ -2916,15 +2916,11 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                       <div className="flex items-center gap-4">
                         {/* Previsualização */}
                         <div className="h-14 px-3 bg-[#0A1128] border-2 border-amber-500/60 rounded-xl flex items-center justify-center shrink-0 min-w-[80px]">
-                          {contactForm.headerLogoUrl ? (
-                            <img
-                              src={contactForm.headerLogoUrl}
-                              alt="Header Logo Preview"
-                              className="h-9 max-w-[120px] object-contain"
-                            />
-                          ) : (
-                            <MRLogo className="h-9 w-auto" color="#F59E0B" />
-                          )}
+                          <img
+                            src={contactForm.headerLogoUrl || '/mr-logo.svg'}
+                            alt="Prévia da logo do cabeçalho"
+                            className="h-10 max-w-[120px] object-contain"
+                          />
                         </div>
 
                         <div className="flex-1 space-y-2">
@@ -2949,16 +2945,14 @@ export const AdminView: React.FC<AdminViewProps> = ({ onNavigateToTab }) => {
                               <span>{isUploadingHeaderLogo ? 'Enviando...' : 'Fazer Upload'}</span>
                             </button>
 
-                            {contactForm.headerLogoUrl && (
-                              <button
-                                type="button"
-                                onClick={handleRemoveHeaderLogo}
-                                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                                <span>Restaurar Logo MR</span>
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={handleRemoveHeaderLogo}
+                              className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-colors"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                              <span>Usar logo padrão em alta qualidade</span>
+                            </button>
                           </div>
                           <p className="text-[10px] text-slate-400">
                             Formatos suportados: PNG, WEBP, JPG (Ideal fundo transparente)
