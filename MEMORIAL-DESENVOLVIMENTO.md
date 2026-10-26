@@ -314,3 +314,13 @@ Checkpoint reforça: nenhuma publicação/merge foi feita; a causa do problema c
 - Próximo passo: no PowerShell do projeto, interromper o servidor com Ctrl+C; executar `git pull origin dev/melhorias-manutencao`; iniciar com `bun run dev`; recarregar `http://localhost:3000` usando Ctrl+Shift+R.
 - Nenhuma alteração em `main` nem publicação em produção foi realizada.
 - Status: correção no branch de desenvolvimento; validação funcional pendente.
+
+
+### 26/10/2026 — Correção da logo padrão do cabeçalho
+
+- O cabeçalho passou a usar o arquivo vetorial local `/mr-logo.svg` como logo padrão, em vez de desenhar o símbolo via componente React.
+- A logo continua dentro do botão de início; o clique permanece ligado a `handleNavClick('inicio')`.
+- O painel Admin agora mostra a mesma logo padrão na prévia e disponibiliza sempre a ação **“Usar logo padrão em alta qualidade”**, que limpa a URL personalizada salva para restaurar o padrão.
+- O processamento de uploads da logo do cabeçalho foi ajustado para 1200 × 900 e qualidade WebP 0,96, reduzindo perda visual em relação à configuração anterior.
+- Alterações realizadas somente na branch `dev/melhorias-manutencao`; nenhuma alteração em `main` ou publicação em produção.
+- Validação pendente: baixar as mudanças, usar a opção de logo padrão no Admin se houver uma imagem antiga salva e conferir o cabeçalho no navegador.
