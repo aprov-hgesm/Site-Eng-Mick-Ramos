@@ -1,0 +1,56 @@
+name: Apply Blog Topic 3 Change
+
+on:
+  push:
+    branches:
+      - dev/melhorias-manutencao
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply Topic 3 editor changes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('components/views/AdminView.tsx')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+          ("""    point2Title: '',\n    point2Text: '',\n    warningBox: '',""", """    point2Title: '',\n    point2Text: '',\n    point3Title: '',\n    point3Text: '',\n    warningBox: '',"""),
+          ("""      point2Title: 'Medidas corretivas recomendadas',\n      point2Text: 'Aplicação de impermeabilização adequada segundo normas NBR ABNT.',\n      warningBox:""", """      point2Title: 'Medidas corretivas recomendadas',\n      point2Text: 'Aplicação de impermeabilização adequada segundo normas NBR ABNT.',\n      point3Title: '',\n      point3Text: '',\n      warningBox:"""),
+          ("""      point2Title: post.content.points[1]?.title || '',\n      point2Text: post.content.points[1]?.text || '',\n      warningBox:""", """      point2Title: post.content.points[1]?.title || '',\n      point2Text: post.content.points[1]?.text || '',\n      point3Title: post.content.points[2]?.title || '',\n      point3Text: post.content.points[2]?.text || '',\n      warningBox:"""),
+          ("""    if (blogForm.point2Title) points.push({ title: blogForm.point2Title, text: blogForm.point2Text });\n\n    const content = {""", """    if (blogForm.point2Title) points.push({ title: blogForm.point2Title, text: blogForm.point2Text });\n    if (blogForm.point3Title) points.push({ title: blogForm.point3Title, text: blogForm.point3Text });\n\n    const content = {"""),
+          ("""  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);\n  const [editingBlogPost, setEditingBlogPost] = useState<BlogPost | null>(null);""", """  const [isBlogModalOpen, setIsBlogModalOpen] = useState(false);\n  const [editingBlogPost, setEditingBlogPost] = useState<BlogPost | null>(null);\n  const [showPoint3, setShowPoint3] = useState(false);"""),
+          ("""    setEditingBlogPost(null);\n    setBlogForm({""", """    setEditingBlogPost(null);\n    setShowPoint3(false);\n    setBlogForm({"""),
+          ("""  const openEditBlogModal = (post: BlogPost) => {\n    setEditingBlogPost(post);""", """  const openEditBlogModal = (post: BlogPost) => {\n    setEditingBlogPost(post);\n    setShowPoint3(post.content.points.length > 2);"""),
+          ("""                <textarea\n                  rows={2}\n                  value={blogForm.point2Text}\n                  onChange={(e) => setBlogForm({ ...blogForm, point2Text: e.target.value })}\n                  placeholder=\"Explicação detalhada do Tópico 2...\"\n                  className=\"w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs\"\n                />\n              </div>\n\n              <div>\n                <label className=\"block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1\">""", """                <textarea\n                  rows={2}\n                  value={blogForm.point2Text}\n                  onChange={(e) => setBlogForm({ ...blogForm, point2Text: e.target.value })}\n                  placeholder=\"Explicação detalhada do Tópico 2...\"\n                  className=\"w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs\"\n                />\n              </div>\n\n              {!showPoint3 ? (\n                <button\n                  type=\"button\"\n                  onClick={() => setShowPoint3(true)}\n                  className=\"w-full py-2.5 border border-dashed border-amber-500/40 hover:border-amber-400 hover:bg-amber-500/5 text-amber-400 font-bold text-xs uppercase tracking-wider rounded-xl transition-colors flex items-center justify-center gap-2\"\n                >\n                  <Plus className=\"w-4 h-4\" />\n                  <span>+ Adicionar outro tópico</span>\n                </button>\n              ) : (\n                <div className=\"space-y-3 p-4 bg-slate-950 rounded-xl border border-amber-500/30\">\n                  <div className=\"flex items-center justify-between gap-3\">\n                    <span className=\"text-xs font-bold text-white uppercase tracking-wider block\">\n                      Tópico Técnico 3 (Opcional)\n                    </span>\n                    <button\n                      type=\"button\"\n                      onClick={() => {\n                        setShowPoint3(false);\n                        setBlogForm({ ...blogForm, point3Title: '', point3Text: '' });\n                      }}\n                      className=\"text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-red-400 transition-colors\"\n                    >\n                      Remover\n                    </button>\n                  </div>\n                  <input\n                    type=\"text\"\n                    value={blogForm.point3Title}\n                    onChange={(e) => setBlogForm({ ...blogForm, point3Title: e.target.value })}\n                    placeholder=\"Título do Tópico 3\"\n                    className=\"w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs\"\n                  />\n                  <textarea\n                    rows={2}\n                    value={blogForm.point3Text}\n                    onChange={(e) => setBlogForm({ ...blogForm, point3Text: e.target.value })}\n                    placeholder=\"Explicação detalhada do Tópico 3...\"\n                    className=\"w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white text-xs\"\n                  />\n                </div>\n              )}\n\n              <div>\n                <label className=\"block text-xs font-bold text-amber-400 uppercase tracking-wider mb-1\">"""),
+          ]
+
+          for old, new in replacements:
+              if old not in s:
+                  raise SystemExit(f'Missing expected pattern: {old[:120]!r}')
+              s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Validate TypeScript
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund --prefer-offline
+          npx tsc --noEmit --pretty false
+
+      - name: Commit changes and remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/apply-blog-topic3.yml
+          git add components/views/AdminView.tsx .github/workflows/apply-blog-topic3.yml
+          git commit -m "feat: adicionar terceiro tópico opcional no blog"
+          git push origin HEAD:dev/melhorias-manutencao
