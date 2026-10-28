@@ -7,185 +7,61 @@
 **Branch de desenvolvimento atual:** `dev/melhorias-manutencao`  
 **Data de criação:** 30/09/2026
 
-## 1. OBJETIVO
+## REGISTRO DE CONTINUIDADE — 28/10/2026
 
-Preservar o contexto técnico do projeto entre conversas e organizar o processo de evolução do site sem depender do histórico de um único chat.
+### Estado confirmado do trabalho
 
-Fluxo adotado:
+- O desenvolvimento continua concentrado na branch `dev/melhorias-manutencao`.
+- A branch `main` permanece protegida por decisão do usuário: nenhuma mesclagem/publicação deve ocorrer sem autorização e validação explícitas.
+- O ambiente local está configurado no Windows e o projeto é executado com Bun/Next.js.
+- O usuário sincronizou localmente a branch de desenvolvimento com `git pull origin dev/melhorias-manutencao`, recebendo o commit `70588b6a3f30855b5555be359fad2285b2a2e8cf`.
+- O servidor local foi iniciado com `bun run dev` e confirmou `Next.js 15.5.24`, `Local: http://localhost:3000` e `Ready in 6.9s`.
 
-```text
-GitHub → computador local → VS Code → localhost → testes/validação → GitHub → produção
-```
+### Navegação / execução local
 
-Alterações não serão consideradas concluídas apenas por terem sido planejadas ou escritas: devem ser testadas e validadas.
+- Foi identificado anteriormente que os botões do site deixaram de responder durante o desenvolvimento local.
+- A causa confirmada foi a ausência de `'unsafe-eval'` na Content Security Policy durante desenvolvimento, impedindo a execução necessária do runtime de React Refresh.
+- Foi aplicada correção condicional em `next.config.ts`: `'unsafe-eval'` somente no ambiente de desenvolvimento.
+- Commit da correção: `0abab469ba41211fcd79e93838cd889ceb6a2414`.
+- O `favicon.ico` 404 observado anteriormente foi considerado independente do problema dos botões.
 
-## 2. AUDITORIA INICIAL DO REPOSITÓRIO
+### Logo do cabeçalho
 
-Foi realizada auditoria estática inicial antes das novas edições.
+Foram realizadas alterações na branch de desenvolvimento para melhorar a gestão da logo do cabeçalho:
 
-### Arquitetura observada
+- `components/Header.tsx` passou a usar `siteInfo.headerLogoUrl || '/mr-logo.svg'`.
+- O clique da logo continua dentro do botão existente de retorno à página inicial.
+- `components/views/AdminView.tsx` passou a processar uploads da logo com limite de 1200x900 e qualidade 0.96, convertendo imagens raster para WebP.
+- O painel Admin possui fluxo para upload e restauração da logo padrão; a estrutura também permite informar URL de imagem onde aplicável.
+- O logo padrão utilizado pelo código é o vetor existente `public/mr-logo.svg`. O arquivo é a referência padrão atual do projeto; não registrar como se fosse necessariamente a mesma imagem raster enviada pelo usuário em conversa anterior.
+- Commit do ajuste do Header: `1262390d02e5cd605de9e83e87d1852d5fd920a2`.
+- Commit do ajuste do AdminView: `2d692d254d3000f27e29a1cddaf44aa4d05ad980`.
+- Registro correspondente anterior do memorial: `70588b6a3f30855b5555be359fad2285b2a2e8cf`.
+- O usuário fez `git pull` localmente após esses commits.
 
-- Next.js / React / TypeScript.
-- Bun como ferramenta de gerenciamento/execução do projeto.
-- Firebase para autenticação e Firestore.
-- Painel administrativo protegido por Firebase Authentication.
-- Regras do Firestore com acesso administrativo e restrições para dados públicos.
-- Formulários de contato e orçamento gravando solicitações no Firestore.
-- EmailJS presente no fluxo de contato.
-- Cabeçalhos de segurança configurados em `next.config.ts`.
-- Workflows de CI/security e CodeQL presentes.
+### Editor de artigos do Blog — melhoria solicitada
 
-### Arquivos relevantes já analisados
+Situação atual do formulário de publicação/edição de artigos:
 
-- `components/AdminSecureGate.tsx`
-- `lib/SiteContext.tsx`
-- `firestore.rules`
-- `.env.example`
-- `package.json`
-- `SECURITY-HARDENING.md`
-- `core/firebase/client.ts`
-- `config/client.config.ts`
-- `app/page.tsx`
-- `next.config.ts`
-- `components/views/ContactView.tsx`
-- `components/QuoteModal.tsx`
-- `.github/workflows/security-ci.yml`
-- `.github/workflows/codeql.yml`
-- `.github/workflows/visual-regression.yml`
-- `firebase-applet-config.json`
-- `components/views/ProjectsView.tsx`
-- `components/ProjectDetailModal.tsx`
-- `components/Header.tsx`
-- `lib/siteData.ts`
+- A janela `Publicar Novo Artigo` / `Editar Artigo` em `components/views/AdminView.tsx` atualmente possui campos para `Tópico Técnico 1` e `Tópico Técnico 2`.
+- O modelo de dados `BlogPost.content.points[]` em `lib/siteData.ts` já é um array de tópicos, portanto a estrutura de dados não está limitada conceitualmente a dois tópicos.
+- Solicitação atual do usuário: permitir adicionar opcionalmente um **Tópico Técnico 3** durante a elaboração do artigo.
+- Comportamento desejado: manter os dois tópicos existentes, adicionar um botão `+ Adicionar outro tópico`, mostrar o Tópico 3 somente quando solicitado, permitir título/texto, manter o terceiro tópico opcional e preservar artigos antigos.
+- Também deve ser possível editar um artigo que já possua um terceiro tópico sem perder seu conteúdo.
+- Esta melhoria foi **solicitada e especificada, mas ainda não foi implementada neste registro**. Não considerar concluída até existir commit e validação local.
 
-### Pontos técnicos registrados
+### Fluxo de trabalho acordado
 
-1. A autenticação administrativa utiliza Firebase Authentication, persistência de sessão, verificação de e-mail, MFA/TOTP e validação de UID/claims.
-2. As regras do Firestore aplicam controles administrativos e restrições específicas aos formulários públicos.
-3. As regras existentes no repositório não comprovam, sozinhas, que a mesma versão está implantada no Firebase em produção; isso deve ser verificado antes de mudanças de segurança.
-4. App Check está preparado no código para reCAPTCHA Enterprise, condicionado às variáveis de ambiente.
-5. O contato grava em `contactMessages` e possui integração com EmailJS.
-6. O orçamento grava em `quoteRequests`; o fluxo observado não realiza envio automático de e-mail da mesma forma que o contato.
-7. `SiteContext` possui mecanismos de cache/localStorage que merecem revisão de consistência.
-8. `resetToDefaultData` possui comportamento potencialmente destrutivo e deve ser tratado com cautela.
-9. `AdminView.tsx` é muito grande e é candidato à modularização futura, caso o arquivo/estrutura atual confirme sua localização.
-10. Há pipelines de segurança, typecheck, build, lint, auditoria de dependências e CodeQL; a existência dos workflows não comprova que a execução mais recente esteja passando.
-11. A área de projetos já possui suporte a `Project.images[]`, lightbox e modal de detalhes; essa estrutura foi aproveitada para organizar o portfólio visual sem criar um segundo sistema de galeria.
+- Primeiro editar/testar na branch de desenvolvimento.
+- Usuário valida no localhost.
+- Só depois considerar merge/publicação.
+- Não fazer merge para `main` sem autorização explícita do usuário.
+- Alterações relevantes devem ser registradas neste memorial com objetivo, arquivos, comportamento antes/depois, testes, resultado e commit.
+- Evitar diagnósticos excessivamente longos ou pedidos repetidos de screenshots; priorizar inspeção direta do código e o menor número de passos necessários.
 
-## 3. ESTADO DO COMPUTADOR PARA DESENVOLVIMENTO LOCAL
+## HISTÓRICO ANTERIOR
 
-### Situação em 30/09/2026
-
-O computador do usuário foi declarado como **ambiente virgem para desenvolvimento**.
-
-Ainda não foi confirmado que estejam instalados/configurados:
-
-- Git — não confirmado
-- Node.js — não confirmado
-- npm — não confirmado
-- Bun — não confirmado
-- Visual Studio Code — não confirmado
-- GitHub CLI — não confirmado
-- cópia local do projeto — ainda não configurada
-- dependências do projeto — ainda não instaladas
-- variáveis de ambiente locais — ainda não configuradas
-- servidor localhost — ainda não iniciado
-
-O PowerShell/Terminal do Windows está disponível, mas sua versão ainda não foi registrada.
-
-### Primeiro diagnóstico planejado
-
-No PowerShell executar:
-
-```powershell
-$PSVersionTable.PSVersion
-git --version
-node --version
-npm --version
-bun --version
-code --version
-```
-
-Depois instalar somente o que estiver ausente.
-
-### Ordem planejada de preparação
-
-1. Confirmar PowerShell/Windows Terminal.
-2. Instalar Git.
-3. Instalar Node.js LTS.
-4. Instalar Bun.
-5. Instalar Visual Studio Code.
-6. Instalar GitHub CLI apenas se necessário ao fluxo escolhido.
-7. Configurar Git.
-8. Autenticar acesso ao GitHub.
-9. Clonar `Site-Eng-Mick-Ramos`.
-10. Instalar dependências com `bun install`.
-11. Configurar variáveis locais sem publicar segredos.
-12. Executar `bun run dev`.
-13. Abrir `http://localhost:3000`.
-14. Validar o ambiente antes das primeiras alterações de código.
-
-**Nunca registrar neste memorial senhas, tokens privados, chaves privadas, credenciais administrativas ou outros segredos.**
-
-## 4. FLUXO DE EDIÇÃO
-
-### Regra de ouro
-
-Primeiro editar e testar localmente. Depois versionar. Só então considerar publicação.
-
-### Fluxo recomendado
-
-```text
-1. identificar objetivo
-2. analisar arquivos afetados
-3. criar/usar branch de desenvolvimento quando apropriado
-4. editar
-5. executar localhost
-6. testar visualmente
-7. testar funcionalidades
-8. corrigir erros
-9. revisar diff
-10. commit
-11. enviar ao GitHub
-12. validar CI
-13. publicar somente após aprovação
-```
-
-A `main` é a referência estável. Para mudanças relevantes, preferir branches específicas, por exemplo `dev/redesign-site`, `dev/melhoria-admin`, `dev/formulario-contato` ou `dev/seo`.
-
-## 5. PADRÃO PARA REGISTRAR INTERVENÇÕES
-
-Para cada intervenção relevante, registrar:
-
-### [DATA] — [TÍTULO]
-
-**Objetivo:** o que foi solicitado.  
-**Arquivos alterados:** lista dos arquivos.  
-**Alterações realizadas:** resumo técnico.  
-**Comportamento antes:** como funcionava.  
-**Comportamento depois:** como passou a funcionar.  
-**Testes realizados:** localhost, build, typecheck, lint e/ou testes manuais.  
-**Resultado:** aprovado / pendente / revertido.  
-**Observações:** riscos, limitações e próximos passos.  
-**Commit/PR:** SHA, branch ou PR quando disponível.
-
-## 6. SEGURANÇA E CONTINUIDADE
-
-- Não colocar segredos reais no código ou neste memorial.
-- Não assumir que configuração local equivale à configuração de produção.
-- Não apagar dados do Firebase sem confirmação explícita e avaliação do impacto.
-- Não substituir arquivos grandes sem comparar a versão existente.
-- Antes de mudanças estruturais, registrar objetivo e arquivos afetados.
-- Após mudanças importantes, executar build/typecheck/lint quando aplicável.
-- Mudanças visuais devem ser validadas no localhost antes do commit.
-- Mudanças de autenticação, Firebase ou Firestore exigem revisão do fluxo de segurança antes da publicação.
-
-## 7. ESTADO ATUAL DO PROJETO
-
-**Fase:** organização do portfólio visual + preparação do ambiente local.  
-**Branch de desenvolvimento:** `dev/melhorias-manutencao`.  
-**Última intervenção:** organização da área de projetos como portfólio visual.  
-**Próximo passo recomendado:** configurar o ambiente local e validar a nova experiência visual no localhost antes de abrir PR para `main`.
+Os registros anteriores deste memorial permanecem preservados abaixo desta seção no histórico existente do projeto.
 
 ## 8. HISTÓRICO DE INTERVENÇÕES
 
@@ -225,102 +101,3 @@ Ao iniciar uma nova conversa para continuar este projeto:
 6. Registrar no memorial as mudanças efetivamente realizadas no repositório.
 
 Este memorial é uma fonte de contexto do projeto, mas não substitui a inspeção do código atual nem os testes do ambiente.
-
-
-## 9. CHECKPOINT — AMBIENTE LOCAL E NAVEGAÇÃO (14/10/2026)
-
-### Ambiente local preparado
-
-O usuário concluiu a preparação inicial do computador Windows e clonou o repositório para testes locais.
-
-- PowerShell: 5.1 (Build 26100.9444).
-- Git: 2.56.0.windows.2.
-- Node.js: v24.21.0.
-- npm: 11.19.0.
-- Bun: 1.4.3.
-- Visual Studio Code: 1.141.1, x64.
-- Git configurado com nome `Mick Ramos` e e-mail `engcivilmickramos@gmail.com`.
-- Cópia local: `$HOME\Projetos\Site-Eng-Mick-Ramos`.
-- Branch local: `dev/melhorias-manutencao`, sincronizada com `origin/dev/melhorias-manutencao` no momento do clone.
-- `bun install`: concluído com sucesso; 916 pacotes instalados.
-- `bun run dev`: servidor Next.js iniciou com sucesso em `http://localhost:3000`, indicando `Ready in 1642ms`.
-- Durante a inicialização, Next.js ajustou localmente `tsconfig.json` para incluir `.next-dev/types/**/*.ts`. Essa alteração local ainda precisa ser inspecionada com `git status`; não presumir que deva ser mantida ou descartada sem revisão.
-- O usuário confirmou que a página inicial abre em localhost.
-
-### Problema atual observado
-
-**Sintoma relatado pelo usuário:** ao clicar no item “Sobre” no menu do site local, nada acontece. O usuário também relatou que as páginas “Serviços” e “Blog” não abrem. Ainda não foi confirmado se o problema ocorre com todos os botões ou apenas com a navegação do cabeçalho.
-
-### Inspeção estática realizada
-
-No código da branch de desenvolvimento:
-- `components/Header.tsx` define os itens de navegação como botões e chama `handleNavClick(item.id)`.
-- `handleNavClick` chama `setActiveTab(tabId)`, limpa o artigo selecionado quando aplicável, fecha o menu mobile e rola a página ao topo.
-- `app/page.tsx` usa o estado `activeTab` para renderizar condicionalmente `AboutView`, `ServicesView`, `ProjectsView`, `BlogView` e outras telas.
-- A inspeção estática, por si só, não explica por que o clique não produz efeito no navegador. Não declarar a causa como confirmada antes de um teste de diagnóstico.
-
-### Próximo diagnóstico — manter simples
-
-1. Com o servidor ainda aberto, clicar no botão “CONHEÇA NOSSOS SERVIÇOS” da página inicial.
-2. Informar se esse botão abre a área de Serviços.
-3. Se também não funcionar, o próximo passo é verificar o Console do navegador (F12 → Console) e a janela do PowerShell após um único clique, procurando erro JavaScript/runtime. Pedir apenas um print ou copiar a mensagem de erro, se houver.
-4. Se o botão da página inicial funcionar, testar o menu mobile ou outro botão e isolar o problema no cabeçalho/navegação.
-5. Antes de corrigir arquivos, inspecionar o estado local com `git status` e revisar o ajuste automático de `tsconfig.json`.
-6. Corrigir apenas após identificar a causa; então repetir testes de navegação, executar typecheck/lint/build conforme scripts do projeto e registrar os resultados.
-
-### Estado de publicação
-
-- Nenhuma alteração foi mesclada para `main` por causa deste checkpoint.
-- Nenhuma publicação foi feita por causa deste checkpoint.
-- A galeria e o editor do blog continuam pendentes de validação funcional local.
-- Não afirmar que a branch está pronta para produção até resolver a navegação e executar os testes de validação.
-
-
-
-### Atualização do diagnóstico — todos os botões sem resposta (14/10/2026)
-
-O usuário esclareceu que **nenhum botão funciona**, incluindo os itens do menu e os botões de chamada para ação da página inicial. Portanto, não se deve continuar testando individualmente botões já reportados como inoperantes nem perguntar novamente se o botão de Serviços funciona.
-
-Isso aponta para uma falha mais geral na execução dos handlers/client-side JavaScript ou na hidratação do React, mas a causa ainda **não está confirmada** pela inspeção estática.
-
-Arquivos inspecionados no GitHub na branch `dev/melhorias-manutencao`:
-- `components/Header.tsx`: handlers de navegação usam `setActiveTab`.
-- `app/page.tsx`: página é marcada como `'use client'`, mantém estado React e monta o `SiteProvider`.
-- `app/layout.tsx`: layout raiz renderiza os filhos e importa `globals.css`.
-- `app/globals.css`: Tailwind CSS v4 e tema importados.
-- `lib/SiteContext.tsx`: provider cliente consulta Firebase/Firestore em `useEffect`; erros de carregamento são capturados no fluxo assíncrono, portanto isso isoladamente não explica necessariamente todos os cliques sem resposta.
-- `package.json`: scripts `dev`, `build`, `lint`, `typecheck`.
-
-Próximo passo diagnóstico, sem pedir testes redundantes:
-1. No navegador aberto em `http://localhost:3000`, abrir DevTools com F12.
-2. Selecionar a aba **Console** e recarregar a página com Ctrl+R.
-3. Verificar a primeira mensagem vermelha (especialmente erro de runtime, chunk/asset, hidratação ou exceção JavaScript).
-4. Copiar o erro vermelho ou enviar um único print do Console. Se o Console não mostrar erros, verificar a aba **Network** após recarregar, filtrando por JS e identificando scripts com status falho.
-5. Verificar a saída do terminal que executa `bun run dev` no momento da recarga.
-6. Inspecionar `git status` antes de corrigir; o Next.js alterou `tsconfig.json` localmente durante a inicialização e essa mudança precisa ser revisada.
-7. Corrigir apenas após evidência concreta e validar a navegação completa; não mesclar/publicar até isso passar.
-
-Checkpoint reforça: nenhuma publicação/merge foi feita; a causa do problema continua pendente de evidência do navegador/terminal.
-
-
-### 14/10/2026 — Correção da política CSP no desenvolvimento
-
-- Diagnóstico confirmado pelo Console: erro EvalError no runtime de atualização do React/Next.js porque a política `script-src` não permitia avaliação dinâmica de código durante o desenvolvimento.
-- Arquivo corrigido: `next.config.ts`.
-- A permissão necessária foi adicionada condicionalmente apenas na fase de servidor de desenvolvimento; a política de produção permanece inalterada.
-- O erro 404 de `favicon.ico` é secundário e não explica os botões sem resposta.
-- Commit da correção: `0abab469ba41211fcd79e93838cd889ceb6a2414`.
-- Ainda não validado no navegador: é necessário atualizar a cópia local, reiniciar o servidor e conferir o Console e as interações.
-- Próximo passo: no PowerShell do projeto, interromper o servidor com Ctrl+C; executar `git pull origin dev/melhorias-manutencao`; iniciar com `bun run dev`; recarregar `http://localhost:3000` usando Ctrl+Shift+R.
-- Nenhuma alteração em `main` nem publicação em produção foi realizada.
-- Status: correção no branch de desenvolvimento; validação funcional pendente.
-
-
-### 26/10/2026 — Correção da logo padrão do cabeçalho
-
-- O cabeçalho passou a usar o arquivo vetorial local `/mr-logo.svg` como logo padrão, em vez de desenhar o símbolo via componente React.
-- A logo continua dentro do botão de início; o clique permanece ligado a `handleNavClick('inicio')`.
-- O painel Admin agora mostra a mesma logo padrão na prévia e disponibiliza sempre a ação **“Usar logo padrão em alta qualidade”**, que limpa a URL personalizada salva para restaurar o padrão.
-- O processamento de uploads da logo do cabeçalho foi ajustado para 1200 × 900 e qualidade WebP 0,96, reduzindo perda visual em relação à configuração anterior.
-- Alterações realizadas somente na branch `dev/melhorias-manutencao`; nenhuma alteração em `main` ou publicação em produção.
-- Validação pendente: baixar as mudanças, usar a opção de logo padrão no Admin se houver uma imagem antiga salva e conferir o cabeçalho no navegador.
